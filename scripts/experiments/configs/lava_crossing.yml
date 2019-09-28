@@ -1,0 +1,77 @@
+# Environment Parameters
+environment:
+  domain_name: gym
+  name: ["MiniGrid-LavaCrossingS9N1-v0",
+         "MiniGrid-LavaCrossingS9N2-v0",
+         "MiniGrid-LavaCrossingS9N3-v0",
+         "MiniGrid-LavaCrossingS11N5-v0"]
+  mini_grid: True # do not change this
+  max_episode_steps: 200 # do not change this
+
+# iterations and other batch parameters
+log:
+  parallel_eval: 100 # do not change this
+  runs: 1
+  iterations: 200 # do not change this
+  average_every: 50 # do not change this
+  reset_every: 1 # do not change this
+  save_every: 200 # do not change this
+  initial_pad_value: 0 # do not change this
+
+Seqnovelty:
+  input_dim: 2
+  hidden_size: 64 # can tune this
+  n_layers: 1 # can tune this
+  lr: 1e-2 # can tune this
+  reg: 0.0 # can tune this
+  traj_sample_ratio: 4 # do not change this
+
+
+# policy parameters
+policy:
+  type: softmax # do not change this
+  is_deterministic: False # do not change this
+
+# Model configuration
+model:
+  hidden_size: 64 # do not change this
+
+
+# ES Parameters
+ES:
+  n_workers: 56 # do not change this
+  a: 1e-2 # do not change this
+  sigma: 1e-1 # do not change this
+  lr_decay: 0 # do not change this
+  momentum: 0.0 # do not change this
+
+# general novelty config
+novelty:
+  initial_rl_weight: 0.0 # do not change this
+  rl_weight_delta: 0.01 # do not change this
+  t_max: 50 # do not change this
+
+# Nearest neighbors novelty detector
+NNnovelty: # do not change this
+  k: 10 # do not change this
+  limit: 1000 # do not change this
+  traj_length: 50 # do not change this
+
+
+# PPO configuration # do not change this
+PPO:
+  nbatch_train: 50
+  log_every: 50
+  ent_coef: 0.0
+  lr: 0.001
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  gamma: 0.99
+  lam: 0.95
+  noptepochs: 1
+  cliprange: 0.2
+  nsteps: 200 # we limit to 200 steps ie. an episode, must be same as the one above
+  value_network: 'copy'
+
+scaler:
+  eps: 0.0

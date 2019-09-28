@@ -1,12 +1,13 @@
 import torch
 from torch import nn
 from components.core_components.models import SamplingStrategy
-from components.core_components.estimators import ES
 from components.core_components.models import PyTorchModel
+from components.core_components.estimators import ES
 from components.core_components.loss import EpisodicReturnPolicy
 from components.core_components.SGDOptimizersES import RMSProp as RMSPropES
 from components.core_components.adaptive import adapt_novelty_pressure
 import numpy as np
+import pandas as pd
 
 
 # set up the network architecture
@@ -24,7 +25,7 @@ class PolicyNet(nn.Module):
         return x
 
 
-def run_experiment_gym_with_es(config, state_dim, action_dim, rl_weight, adaptive, folder_name, novelty_detector, behavior, device_list):
+def run_experiment_gym_with_es(env, config, state_dim, action_dim, rl_weight, adaptive, folder_name, novelty_detector, behavior, device_list, behavior_file):
     """
     :param config: takes config parameters
     :param rl_weight: RL pressure
@@ -59,6 +60,7 @@ def run_experiment_gym_with_es(config, state_dim, action_dim, rl_weight, adaptiv
 
     # the objective function
     objective = EpisodicReturnPolicy(model=model,
+                                     env=env,
                                      config=config,
                                      scaler=scaler,
                                      behavior_selection=behavior,
@@ -82,6 +84,7 @@ def run_experiment_gym_with_es(config, state_dim, action_dim, rl_weight, adaptiv
 
     # the main loop
     episodic_total_reward = []
+    episodic_behaviors = pd.DataFrame()
     running_total_reward = 0
     f_best = -np.inf
     t_best = 0
@@ -92,11 +95,11 @@ def run_experiment_gym_with_es(config, state_dim, action_dim, rl_weight, adaptiv
         current_layer_name, current_layer_value = model.sample_layer()
 
         # estimator
-        gradients = estimator.estimate_gradient(current_layer_name, current_layer_value)
+        gradients, behaviors = estimator.estimate_gradient(current_layer_name, current_layer_value)
 
-        # novelty model - a mini-batch step
-        if novelty_detector is not None:
-            novelty_detector.step()
+        if behavior_file is not None:
+            for j, perturb_beh in enumerate(behaviors):
+                behavior_file.create_dataset("epoch_{}_{}".format(i, j), data=perturb_beh.numpy() if type(perturb_beh) == torch.Tensor else perturb_beh)
 
         # optimizer
         updated_layer_value = optimizer.step(current_layer_name, current_layer_value, gradients)
@@ -104,10 +107,21 @@ def run_experiment_gym_with_es(config, state_dim, action_dim, rl_weight, adaptiv
         # update the parameter
         model.set_layer_value(current_layer_name, updated_layer_value)
 
+        # seed for evaluation (same type of generation as in estimators)
+        seed = np.random.randint(0, int(config["log"]["parallel_eval"]/2))
+
         # evaluate the learning
         objective.parameter_name = current_layer_name
-        total_reward, _, _ = objective(updated_layer_value, device_list[0], True)
+        total_reward, current_behavior, _ = objective(updated_layer_value, device_list[0], seed, True)
         running_total_reward += total_reward
+
+        # novelty model - a mini-batch step
+        if novelty_detector is not None:
+
+            # can we just add this behavior for the learning instead of one from all the perturbations
+            estimator.novelty_detector.fit_model([current_behavior])
+
+            novelty_detector.step()
 
         # here, we adapt the reward/novelty weights based on stagnation
         if adaptive:
@@ -151,6 +165,13 @@ def run_experiment_gym_with_es(config, state_dim, action_dim, rl_weight, adaptiv
         # save the model
         if i == 0 or (i+1) % config["log"]["save_every"] == 0:
             torch.save(model.net.cpu(), folder_name+"/model_"+"{0:0=4d}".format(i if i == 0 else i + 1))
+
+    # behavior_file
+    if behavior_file is not None:
+        behavior_file.close()
+
+    # close the pool now
+    estimator.p.close()
 
     # return the results
     return episodic_total_reward

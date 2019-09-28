@@ -11,6 +11,31 @@ import sys
 import gym.spaces
 from components.core_components.run_utility import run_experiment_gym_with_es
 import pickle
+from gym_minigrid.register import env_list
+from components.core_components.run_baseline import run_experiment_PPO
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+from copy import deepcopy
+
+
+def get_task_configs(task_names):
+
+    task_configs = {}
+    for task_name in task_names:
+        # read the corresponding config
+        with open(dir_path+"/configs/{}.yml".format(task_name), 'r') as ymlfile:
+            config = yaml.load(ymlfile)
+
+        # get the individial task names
+        names = config["environment"]["name"]
+
+        # now, replicate the config
+        for name in names:
+            task_config = deepcopy(config)
+            task_config["environment"]["name"] = name
+            task_configs[name] = task_config
+    return task_configs
+
 
 if __name__ == "__main__":
 
@@ -31,15 +56,15 @@ if __name__ == "__main__":
 
         task_names = sys.argv[1:]
 
-        for task_name in task_names:
+        # get the individual task names from the config
+        task_names_and_configs = get_task_configs(task_names)
 
-            print("Running for task name:{}".format(task_name))
+        for task_name, config in task_names_and_configs.items():
 
-            # read the config
-            with open(dir_path+"/configs/{}.yml".format(task_name), 'r') as ymlfile:
-                config = yaml.load(ymlfile)
+            print("\nRunning for task name:{}".format(task_name))
 
             # create folder name
+            os.makedirs(os.path.dirname(os.path.realpath(__file__)) + "/outputs/", exist_ok=True)
             folder_name = os.path.dirname(os.path.realpath(__file__)) + "/outputs/Comparison-all-"+str(datetime.now())
             os.mkdir(folder_name)
 
@@ -47,9 +72,9 @@ if __name__ == "__main__":
             episodic_total_rewards_strategy = pd.DataFrame()
 
             for adaptive_config in [
-                                    True,
-                                    False,
                                     None,
+                                    #False,
+                                    True,
                                     ]:
                 # None - indicates it is purely RL driven
                 # False - indicates it is purely Novelty driven
@@ -58,21 +83,25 @@ if __name__ == "__main__":
                 # create environments to get
                 env = gym.make(config["environment"]["name"])
 
-                # get the action space
-                action_space = env.action_space.shape[0]
-
-                # get the state space
-                state_spec = env.observation_space.shape[0]
+                # create environments to get
+                if config["environment"]["mini_grid"]:
+                    env = gym.make(config["environment"]["name"])
+                    action_dim = env.action_space.n
+                    state_dim = 7 * 7 * 3 # hard-coded for now
+                else: # for other continuous control tasks
+                    env = gym.make(config["environment"]["name"])
+                    action_dim = env.action_space.shape[0]
+                    state_dim = env.observation_space
 
                 # different configurations for novelty
                 novelty_configs = {
-                    "AE": (AEModel(input_dim=config["Seqnovelty"]["input_dim"],
-                                   hidden_size=config["Seqnovelty"]["hidden_size"],
-                                   n_layers=config["Seqnovelty"]["n_layers"],
-                                   device=device_list[0],
-                                   lr=float(config["Seqnovelty"]["lr"]),
-                                   reg=float(config["Seqnovelty"]["reg"])), "ae_trajectory",),
                     "KNN": (KNNModel(k=config["NNnovelty"]["k"], limit=config["NNnovelty"]["limit"]), "knn_trajectory"),
+                    # "AE": (AEModel(input_dim=config["Seqnovelty"]["input_dim"],
+                    #                hidden_size=config["Seqnovelty"]["hidden_size"],
+                    #                n_layers=config["Seqnovelty"]["n_layers"],
+                    #                device=device_list[0],
+                    #                lr=float(config["Seqnovelty"]["lr"]),
+                    #                reg=float(config["Seqnovelty"]["reg"])), "ae_trajectory",),
                 }
 
                 # it is not none
@@ -99,8 +128,11 @@ if __name__ == "__main__":
                             # create a directory
                             os.mkdir(folder_name+"/"+strategy_name+str(k))
 
+                            # behavior file
+                            behavoir_file = None
+
                             # run the experiment once
-                            episodic_total_reward = run_experiment_gym_with_es(config, state_spec, action_space, rl_weight, adaptive_config, folder_name + "/" + strategy_name + str(k), novelty_detector, behavoir, device_list)
+                            episodic_total_reward = run_experiment_gym_with_es(env, config, state_dim, action_dim, rl_weight, adaptive_config, folder_name + "/" + strategy_name + str(k), novelty_detector, behavoir, device_list, behavoir_file)
 
                             # store raw total rewards (unsmoothened)
                             with open(folder_name+"/"+strategy_name+str(k)+"/raw_episodic_total_rewards.p", "wb") as f:
@@ -128,8 +160,11 @@ if __name__ == "__main__":
                         # create a directory
                         os.mkdir(folder_name+"/"+strategy_name+str(k))
 
+                        # behavior file
+                        behavoir_file = None
+
                         # run the experiment once
-                        episodic_total_reward = run_experiment_gym_with_es(config, state_spec, action_space, rl_weight, False, folder_name + "/" + strategy_name + str(k), None, None, device_list)
+                        episodic_total_reward = run_experiment_gym_with_es(env, config, state_dim, action_dim, rl_weight, False, folder_name + "/" + strategy_name + str(k), None, None, device_list, behavoir_file)
 
                         # store raw total rewards (unsmoothened)
                         with open(folder_name+"/"+strategy_name+str(k)+"/raw_episodic_total_rewards.p", "wb") as f:
@@ -144,6 +179,28 @@ if __name__ == "__main__":
                         df["run"] = k
                         df["strategy"] = strategy_name
                         episodic_total_rewards_strategy = episodic_total_rewards_strategy.append(df)
+
+            # also get the policy gradient baseline (PPO) (run for the same number of times)
+            for k in range(int(config["log"]["runs"])):
+
+                print("\n -------Running PPO for iteration----------"+ str(k+1))
+
+                strategy_name = "PPO"
+                os.mkdir(folder_name+"/"+strategy_name+str(k))
+                config_ppo = config["PPO"]
+                config_ppo["nEps"] = config["log"]["parallel_eval"]
+                config_ppo["nItrs"] = config["log"]["iterations"]
+                _, episodic_total_reward = run_experiment_PPO(config["environment"]["name"], config["PPO"])
+
+                # Compute the running mean
+                N = int(config["log"]["average_every"])
+                selected = rolling_mean(episodic_total_reward, N, config["log"]["initial_pad_value"]).tolist()
+
+                # Combine all runs and add them to the strategy dataframe
+                df = pd.DataFrame({"Steps": np.arange(len(selected)), "Episodic Total Reward": selected})
+                df["run"] = k
+                df["strategy"] = strategy_name
+                episodic_total_rewards_strategy = episodic_total_rewards_strategy.append(df)
 
             # Plot the learning curves here
             episodic_total_rewards_strategy.to_pickle(folder_name+"/learning_curve_df")

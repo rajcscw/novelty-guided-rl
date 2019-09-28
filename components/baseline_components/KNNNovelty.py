@@ -1,5 +1,6 @@
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
+import warnings
 
 
 class NoveltyDetectionModule:
@@ -30,7 +31,10 @@ class NoveltyDetectionModule:
 
         # fit the model now
         data_points = np.array(self.behavoirs).reshape(len(self.behavoirs), -1)
-        self.behavior_model.fit(data_points)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.behavior_model.fit(data_points)
 
     def step(self):
         pass

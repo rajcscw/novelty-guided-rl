@@ -70,6 +70,10 @@ class NoveltyDetectionModule:
         self.encoder = SeqEncoder(self.input_dim, self.hidden_size, self.n_layers)
         self.decoder = SeqDecoder(self.hidden_size, self.input_dim, self.n_layers)
 
+        # send the networks to devices
+        self.encoder = to_device(self.encoder, self.device)
+        self.decoder = to_device(self.decoder, self.device)
+
         # all the optimizers
         self.encoder_optimizer = torch.optim.Adagrad(self.encoder.parameters(), lr=lr, weight_decay=self.reg)
         self.decoder_optimier = torch.optim.Adagrad(self.decoder.parameters(), lr=lr, weight_decay=self.reg)
@@ -121,6 +125,9 @@ class NoveltyDetectionModule:
             sequence = sequence.type(torch.float32)
             sequence = sequence.view(1, seq_length, self.input_dim)
 
+            # send to device
+            sequence = to_device(sequence, self.device)
+
             # feed it in into the encoder network
             encoder_output, encoder_hidden = self.encoder.forward(sequence, encoder_hidden)
 
@@ -133,7 +140,7 @@ class NoveltyDetectionModule:
             reconstructed = []
             for i in range(seq_length):
                 decoder_output, decoder_hidden = self.decoder.forward(decoder_output, decoder_hidden)
-                reconstructed.append(decoder_output.data.numpy())
+                reconstructed.append(decoder_output.data.cpu().numpy())
                 loss += self.loss_fn(decoder_output, sequence[0, seq_length - 1 - i].reshape(decoder_output.shape))
 
             # average over sequences
@@ -154,7 +161,7 @@ class NoveltyDetectionModule:
         # after training, empty the archive set
         self.archive_set = []
 
-        return loss_batch.data.numpy(), reconstructed
+        return loss_batch.data.cpu().numpy(), reconstructed
 
     def get_novelty(self, sequence):
         """
@@ -170,6 +177,9 @@ class NoveltyDetectionModule:
 
         # re-shape the sequence
         sequence = sequence.view(1, seq_length, self.input_dim).type(torch.float32)
+
+        # send sequence to the device
+        sequence = to_device(sequence, self.device)
 
         # initialize the hidden state of the encoder network
         encoder_hidden = self.encoder.initHidden(self.device)

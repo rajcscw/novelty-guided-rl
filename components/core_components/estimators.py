@@ -4,6 +4,35 @@ import torch
 from functools import reduce
 
 
+class PerturbRunner:
+    def __init__(self, loss_function):
+        self.loss_function = loss_function
+
+        # temp variables (to avoid passing to a function because of map())
+        self.c_t = None
+        self.current_estimate = None
+        self.current_parameter = None
+
+    def run_for_perturb(self, device):
+        # get the random perturbation vector from bernoulli distribution
+        # it has to be symmetric around zero
+        # But normal distribution does not work which makes the perturbations close to zero
+        # Also, uniform distribution should not be used since they are not around zero
+        delta = torch.randint(0,2, self.current_estimate.shape).type(torch.float32) * 2 - 1
+        scale = self.c_t
+
+        # param_plus and minus
+        param_plus = self.current_estimate + delta * scale
+        param_minus = self.current_estimate - delta * scale
+
+        # measure the loss function at perturbations
+        self.loss_function.parameter_name = self.current_parameter
+        loss_plus, beh_plus = self.loss_function(param_plus, device)
+        loss_minus, beh_minus = self.loss_function(param_minus, device)
+
+        return (loss_plus, loss_minus), (beh_plus, beh_minus), delta * scale
+
+
 class PerturbRunnerES:
     def __init__(self, loss_function):
         self.loss_function = loss_function
@@ -14,7 +43,7 @@ class PerturbRunnerES:
         self.current_parameter = None
         self.device = None
 
-    def run_for_perturb(self, delta):
+    def run_for_perturb(self, delta, seed):
         scale = self.sigma
 
         # perturb
@@ -22,7 +51,7 @@ class PerturbRunnerES:
 
         # measure the loss function at perturbations
         self.loss_function.parameter_name = self.current_parameter
-        reward, beh, _ = self.loss_function(param_perturb, self.device)
+        reward, beh, _ = self.loss_function(param_perturb, self.device, seed)
 
         return reward, beh, delta
 
@@ -138,14 +167,19 @@ class ES:
         mirrored = [-i for i in perturbs]
         perturbs += mirrored
 
+        # seeds for grid envs (also mirrored)
+        seeds = list(range(int(self.k/2)))
+        seeds += seeds
+
         # run parallely for all k mirrored candidates
         self.runner.sigma = self.sigma
         self.runner.current_estimate = current_estimate
         self.runner.current_parameter = current_parameter
         self.runner.device = self.device_list[0]
-        obj_values = self.p.map(self.runner.run_for_perturb, perturbs)
+        obj_values = self.p.starmap(self.runner.run_for_perturb, zip(perturbs, seeds))
+        behaviors = [item[1] for item in obj_values]
         gradient = self.gradients_from_objectives(current_estimate, obj_values)
-        return gradient
+        return gradient, behaviors
 
     def estimate_gradient(self, current_parameter, current_estimate):
         """
@@ -154,5 +188,10 @@ class ES:
         """
 
         # run parallely
-        g_t = self.run_parellely(current_estimate, current_parameter)
-        return g_t
+        g_t, behaviors = self.run_parellely(current_estimate, current_parameter)
+        return g_t, behaviors
+
+
+
+
+

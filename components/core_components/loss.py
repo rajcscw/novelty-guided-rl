@@ -2,15 +2,15 @@ import numpy as np
 import gym
 import warnings
 gym.logger.set_level(40)
-from gym import spaces
 from gym import wrappers
 import torch
 from torch.nn import Softmax
 
 
 class EpisodicReturnPolicy:
-    def __init__(self, model, config, scaler, state_dim, action_dim, behavior_selection=None, is_deterministic = False, eval=1):
+    def __init__(self, model, env, config, scaler, state_dim, action_dim, behavior_selection=None, is_deterministic = False, eval=1):
         self.model = model
+        self.env = env
         self.config = config
         self.scaler = scaler
         self.behavior_selection = behavior_selection
@@ -46,16 +46,53 @@ class EpisodicReturnPolicy:
                 return offset
             else:
                 return behavior
+        # 3-D environments
+        elif self.env_params["name"] in ["Humanoid-v2", "HumanoidStandup-v2"]:
+            behavior = np.array(self._get_pos(env.env)[0:3])
+            if init_beh is not None:
+                x_pos_now = behavior[0]
+                x_pos_init = init_beh[0]
+                if np.sign(x_pos_now - x_pos_init) < 0.0:  # clip the behavior space
+                    behavior[0] = x_pos_init
+                offset = (behavior - init_beh) ** 2
+                return offset
+            else:
+                return behavior
+        elif self.env_params["name"] in ["Ant-v2"]:
+            # current behavior
+            behavior = np.array(self._get_body_com(env.env)[0:1])
+
+            # see if previous behavior is set
+            if self.prev_beh is not None:
+                # if previous behavior is present, then take the offset
+                # and clip them probably
+                offset = (behavior - self.prev_beh)
+                if offset[0] <= 0.0:
+                    offset[0] = 0.0
+
+                # set the prev beh to current
+                self.prev_beh = behavior
+
+                return offset
+            else:
+                # first time
+                self.prev_beh = behavior
+                return behavior
+
         # Pendulum environments
         elif "InvertedPendulum-v2" == self.env_params["name"]:
             cart_pos = env.env.get_body_com("cart")[:2]
             pole_pos = env.env.get_body_com("pole")[:2]
-            return np.concatenate([cart_pos, pole_pos]), np.concatenate([cart_pos, pole_pos])
+            return np.concatenate([cart_pos, pole_pos])
         elif "InvertedDoublePendulum-v2" == self.env_params["name"]:
             cart_pos = env.env.get_body_com("cart")[:2]
             pole_pos = env.env.get_body_com("pole")[:2]
             pole_pos2 = env.env.get_body_com("pole2")[:2]
-            return np.concatenate([cart_pos, pole_pos, pole_pos2]), np.concatenate([cart_pos, pole_pos])
+            return np.concatenate([cart_pos, pole_pos, pole_pos2])
+        # Reacher environments
+        elif "Reacher-v2" == self.env_params["name"]:
+            feedback_signal = (env.env.get_body_com("fingertip") - env.env.get_body_com("target"))[0:2]
+            return feedback_signal
         # for mini grid environments
         elif "Grid" in self.env_params["name"]:
             if init_beh is not None:
@@ -69,6 +106,10 @@ class EpisodicReturnPolicy:
 
     def get_equi_spaced_points(self, seq, to_len):
         seq_len = seq.shape[0]
+
+        if seq_len == 0:
+            return np.zeros((to_len, 2))
+
         space = int(np.ceil(seq_len/to_len))
         if space > 0:
             spaced_indices = np.arange(0, seq_len - 1, space)
@@ -115,7 +156,6 @@ class EpisodicReturnPolicy:
     def softmax_policy(self, network_output):
         network_output = Softmax(dim=1)(network_output)
         action = torch.multinomial(input=network_output, num_samples=1).cpu().data.numpy()
-        #action = torch.argmax(input=network_output).cpu().data.numpy()
         return action
 
     def gaussian_policy(self, network_output):
@@ -142,14 +182,18 @@ class EpisodicReturnPolicy:
         pos = env.get_body_com("torso")
         return pos
 
-    def __call__(self, parameter_value, device, eval=False, render=False, save_loc=None):
+    def __call__(self, parameter_value, device, seed, eval=False, render=False, save_loc=None):
+
+        env = self.env
+
         # create the environment
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            env = gym.make(self.env_params["name"])
-            if self.env_params["mini_grid"]:
-                env = env
+            # env = gym.make(self.env_params["name"])
+            # if self.env_params["mini_grid"]: # seeds are applied here
+            #     env.seed(seed)
             if self.max_steps:
+                env.max_steps = self.max_steps
                 env._max_episode_steps = self.max_steps
 
             if render:
@@ -211,18 +255,19 @@ class EpisodicReturnPolicy:
         if self.behavior_selection == "knn_trajectory":
             behavior = np.array(trajectory)
             behavior = self.get_equi_spaced_points(behavior, self.config["NNnovelty"]["traj_length"])
+        elif self.behavior_selection == "knn_final":
+            behavior = np.array(trajectory[-1])
         elif self.behavior_selection == "ae_trajectory": # a sequence of agent#s trajectory
             behavior = np.array(trajectory)
 
             # let's apply variable length sequences
             # that is we subsample the sequences
-            if self.config["Seqnovelty"]["variable_length"]:
-                if behavior.shape[0] < self.config["Seqnovelty"]["min_traj_length"]:
-                    traj_length = self.config["Seqnovelty"]["min_traj_length_subsampled"]
-                else:
-                    traj_length = int(behavior.shape[0] / self.config["Seqnovelty"]["traj_sample_ratio"])
+
+            if behavior.shape[0] <= self.config["Seqnovelty"]["traj_sample_ratio"]:
+                traj_length = self.config["Seqnovelty"]["traj_sample_ratio"]
             else:
-                traj_length = self.config["Seqnovelty"]["fixed_traj_length"]
+                traj_length = int(behavior.shape[0] / self.config["Seqnovelty"]["traj_sample_ratio"])
+
             behavior = self.get_equi_spaced_points(behavior, traj_length)
             behavior = torch.from_numpy(behavior)
         else:

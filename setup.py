@@ -7,7 +7,7 @@ setup(
     install_requires=[
         "numpy",
         "torch",
-        "gym",
+        "gym==0.14.0",
         "gym-minigrid",
         "pyyaml",
         "pandas",
@@ -15,6 +15,8 @@ setup(
         "seaborn",
         "scikit-image",
         "sklearn",
-        "mujoco-py"
+        #"mujoco-py"
+        "tensorflow",
+        "joblib"
     ]
 )
