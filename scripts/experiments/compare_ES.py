@@ -72,7 +72,7 @@ if __name__ == "__main__":
             episodic_total_rewards_strategy = pd.DataFrame()
 
             for adaptive_config in [
-                                    None,
+                                    #None,
                                     #False,
                                     True,
                                     ]:
@@ -95,13 +95,13 @@ if __name__ == "__main__":
 
                 # different configurations for novelty
                 novelty_configs = {
-                    "KNN": (KNNModel(k=config["NNnovelty"]["k"], limit=config["NNnovelty"]["limit"]), "knn_trajectory"),
-                    # "AE": (AEModel(input_dim=config["Seqnovelty"]["input_dim"],
-                    #                hidden_size=config["Seqnovelty"]["hidden_size"],
-                    #                n_layers=config["Seqnovelty"]["n_layers"],
-                    #                device=device_list[0],
-                    #                lr=float(config["Seqnovelty"]["lr"]),
-                    #                reg=float(config["Seqnovelty"]["reg"])), "ae_trajectory",),
+                    #"KNN": (KNNModel(k=config["NNnovelty"]["k"], limit=config["NNnovelty"]["limit"]), "knn_trajectory"),
+                    "AE": (AEModel(input_dim=config["Seqnovelty"]["input_dim"],
+                                   hidden_size=config["Seqnovelty"]["hidden_size"],
+                                   n_layers=config["Seqnovelty"]["n_layers"],
+                                   device=device_list[0],
+                                   lr=float(config["Seqnovelty"]["lr"]),
+                                   reg=float(config["Seqnovelty"]["reg"])), "ae_trajectory",),
                 }
 
                 # it is not none
@@ -180,27 +180,27 @@ if __name__ == "__main__":
                         df["strategy"] = strategy_name
                         episodic_total_rewards_strategy = episodic_total_rewards_strategy.append(df)
 
-            # also get the policy gradient baseline (PPO) (run for the same number of times)
-            for k in range(int(config["log"]["runs"])):
-
-                print("\n -------Running PPO for iteration----------"+ str(k+1))
-
-                strategy_name = "PPO"
-                os.mkdir(folder_name+"/"+strategy_name+str(k))
-                config_ppo = config["PPO"]
-                config_ppo["nEps"] = config["log"]["parallel_eval"]
-                config_ppo["nItrs"] = config["log"]["iterations"]
-                _, episodic_total_reward = run_experiment_PPO(config["environment"]["name"], config["PPO"])
-
-                # Compute the running mean
-                N = int(config["log"]["average_every"])
-                selected = rolling_mean(episodic_total_reward, N, config["log"]["initial_pad_value"]).tolist()
-
-                # Combine all runs and add them to the strategy dataframe
-                df = pd.DataFrame({"Steps": np.arange(len(selected)), "Episodic Total Reward": selected})
-                df["run"] = k
-                df["strategy"] = strategy_name
-                episodic_total_rewards_strategy = episodic_total_rewards_strategy.append(df)
+            # # also get the policy gradient baseline (PPO) (run for the same number of times)
+            # for k in range(int(config["log"]["runs"])):
+            #
+            #     print("\n -------Running PPO for iteration----------"+ str(k+1))
+            #
+            #     strategy_name = "PPO"
+            #     os.mkdir(folder_name+"/"+strategy_name+str(k))
+            #     config_ppo = config["PPO"]
+            #     config_ppo["nEps"] = config["log"]["parallel_eval"]
+            #     config_ppo["nItrs"] = config["log"]["iterations"]
+            #     _, episodic_total_reward = run_experiment_PPO(config["environment"]["name"], config["PPO"])
+            #
+            #     # Compute the running mean
+            #     N = int(config["log"]["average_every"])
+            #     selected = rolling_mean(episodic_total_reward, N, config["log"]["initial_pad_value"]).tolist()
+            #
+            #     # Combine all runs and add them to the strategy dataframe
+            #     df = pd.DataFrame({"Steps": np.arange(len(selected)), "Episodic Total Reward": selected})
+            #     df["run"] = k
+            #     df["strategy"] = strategy_name
+            #     episodic_total_rewards_strategy = episodic_total_rewards_strategy.append(df)
 
             # Plot the learning curves here
             episodic_total_rewards_strategy.to_pickle(folder_name+"/learning_curve_df")

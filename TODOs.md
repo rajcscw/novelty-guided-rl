@@ -8,15 +8,24 @@
 
 # Tasks
 
-**Fix the baseline parameters and run the baseline experiments only one**
-**Add notes which one to change and which one not to...**
+**Fix the baseline parameters and run the baseline experiments only once**
+**Add notes which one to change and which one not to...** 
 
-- Phase I: Run the baselines for lava and simple cross
+- Phase I: Run the baselines for lava and simple cross (Will finish before Sep 30) 
+
+In general, in simple cross environments, KNN do not show much improvements, but let's check with AE approach one
+In lava experiments, it shows good improvements over RL. PPO is unstable in most.
+
+Baselines done for Lava experiments; Now, running with AE methods.
+
 - Phase II: Run the baselines for minigrid and unlock environments
+
+Minigrid is running now, Next unlock to be started
+
+- Collect numbers to beat
 - Crucial Phase III: Start tuning for NSRA encoders for all experiments
-- Run preferably parallely for many tasks
+- Pick atleast six/eight experiments
 - We need atleast six/eight experiments
-- May be 2 simple crossing, 2 lava crossing, 2 multi room settings or some unlock the key experiments  
 - **Definitely** Must include Multi room experiments where pure novelty failed
 - Merge all pure novelty and adaptive novelty experiments into the same plot
 - We need some ablation analysis experiments such as sequence length, model complexity etc on some experiment
@@ -38,12 +47,8 @@ This makes sense. We can simulate every such experiment like robot falling type 
 
 |Experiment| Novelty  | Adaptive  | Status |
 |---|---|---|---|
-|  MiniGrid-SimpleCrossingS9N1-v0  | Running once| Running once  | PPO target of 0.84, RL target of 0.65, NSRA close to 0.8  |
-|  MiniGrid-SimpleCrossingS9N2-v0  | Yet to start  | Yet to start  |   |
-|  MiniGrid-SimpleCrossingS9N3-v0  | Yet to start  | Testing  | This seems promising because PPO fails completely, just have to tune NSRA, and RL target of 0.6, KNN target of 0.65 |
-|  MiniGrid-SimpleCrossingS11N5-v0 | Yet to start  | Yet to start  |   |
-|  MiniGrid-LavaCrossingS9N1-v0    | Yet to start  | Testing  |  RL target of 0.3 only. KNN target of 0.6 |
-|  MiniGrid-LavaCrossingS9N2-v0    | Yet to start  | Yet to start  |   |
-|  MiniGrid-LavaCrossingS9N3-v0    | Yet to start  | Yet to start  |   |
-|  MiniGrid-LavaCrossingS11N5-v0   | Yet to start  | Yet to start  |   |
+|  MiniGrid-LavaCrossingS9N1-v0    | Not needed  | Collecting baselines  |  Target of 0.8 (All of them)  |
+|  MiniGrid-LavaCrossingS9N2-v0    | Not needed  | Collecting baselines  |  Target of  0.6 (PPO)|
+|  MiniGrid-LavaCrossingS9N3-v0    | Not needed  | Collecting baselines  |  Target of 0.6 (PPO)  |
+|  MiniGrid-LavaCrossingS11N5-v0   | Not needed  | Collecting baselines  |  Target of  0.35 (KNN)|
 
