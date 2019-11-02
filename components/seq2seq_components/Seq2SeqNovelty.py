@@ -57,7 +57,7 @@ class SeqDecoder(nn.Module):
 
 
 class NoveltyDetectionModule:
-    def __init__(self, input_dim, hidden_size, n_layers, device, lr, reg):
+    def __init__(self, input_dim, hidden_size, n_layers, device, lr, reg, epochs):
 
         self.input_dim = input_dim
         self.hidden_size = hidden_size
@@ -65,6 +65,7 @@ class NoveltyDetectionModule:
         self.device = device
         self.lr = lr
         self.reg = reg
+        self.epochs = epochs
 
         # instantiate the network objects
         self.encoder = SeqEncoder(self.input_dim, self.hidden_size, self.n_layers)
@@ -102,61 +103,64 @@ class NoveltyDetectionModule:
             self.add_behaviors(sequence)
 
     def step(self):
-        # here we perform a mini-batch update (only a single step)
-        sample_size = len(self.archive_set)
-        seq_indices = np.random.choice(a=np.arange(len(self.archive_set)), size=sample_size)
 
-        loss_batch = 0
-        for idx in seq_indices:
+        for i in range(self.epochs):
 
-            sequence = self.archive_set[idx]
+            # here we perform a mini-batch update (only a single step)
+            sample_size = len(self.archive_set)
+            seq_indices = np.random.choice(a=np.arange(len(self.archive_set)), size=sample_size)
 
-            # get the length of the sequence
-            seq_length = sequence.shape[0]
+            loss_batch = 0
+            for idx in seq_indices:
 
-            # reset optimizers
-            self.encoder_optimizer.zero_grad()
-            self.decoder_optimier.zero_grad()
+                sequence = self.archive_set[idx]
 
-            # initialize the hidden state of the encoder network
-            encoder_hidden = self.encoder.initHidden(self.device)
+                # get the length of the sequence
+                seq_length = sequence.shape[0]
 
-            # may have to re-shape the sequence here
-            sequence = sequence.type(torch.float32)
-            sequence = sequence.view(1, seq_length, self.input_dim)
+                # reset optimizers
+                self.encoder_optimizer.zero_grad()
+                self.decoder_optimier.zero_grad()
 
-            # send to device
-            sequence = to_device(sequence, self.device)
+                # initialize the hidden state of the encoder network
+                encoder_hidden = self.encoder.initHidden(self.device)
 
-            # feed it in into the encoder network
-            encoder_output, encoder_hidden = self.encoder.forward(sequence, encoder_hidden)
+                # may have to re-shape the sequence here
+                sequence = sequence.type(torch.float32)
+                sequence = sequence.view(1, seq_length, self.input_dim)
 
-            # initialize the inputs for decoder input
-            decoder_hidden = encoder_hidden
-            decoder_output = self.decoder.getInitialSeed(self.device)
+                # send to device
+                sequence = to_device(sequence, self.device)
 
-            # now, reconstruct the sequence back in reverse order
-            loss = 0
-            reconstructed = []
-            for i in range(seq_length):
-                decoder_output, decoder_hidden = self.decoder.forward(decoder_output, decoder_hidden)
-                reconstructed.append(decoder_output.data.cpu().numpy())
-                loss += self.loss_fn(decoder_output, sequence[0, seq_length - 1 - i].reshape(decoder_output.shape))
+                # feed it in into the encoder network
+                encoder_output, encoder_hidden = self.encoder.forward(sequence, encoder_hidden)
 
-            # average over sequences
-            loss = loss / seq_length
+                # initialize the inputs for decoder input
+                decoder_hidden = encoder_hidden
+                decoder_output = self.decoder.getInitialSeed(self.device)
 
-            # add it to the loss batch
-            loss_batch += loss
+                # now, reconstruct the sequence back in reverse order
+                loss = 0
+                reconstructed = []
+                for i in range(seq_length):
+                    decoder_output, decoder_hidden = self.decoder.forward(decoder_output, decoder_hidden)
+                    reconstructed.append(decoder_output.data.cpu().numpy())
+                    loss += self.loss_fn(decoder_output, sequence[0, seq_length - 1 - i].reshape(decoder_output.shape))
 
-        # average it
-        if len(seq_indices) > 0:
-            loss_batch = loss_batch / len(seq_indices)
+                # average over sequences
+                loss = loss / seq_length
 
-        # back prop
-        loss_batch.backward()
-        self.encoder_optimizer.step()
-        self.decoder_optimier.step()
+                # add it to the loss batch
+                loss_batch += loss
+
+            # average it
+            if len(seq_indices) > 0:
+                loss_batch = loss_batch / len(seq_indices)
+
+            # back prop
+            loss_batch.backward()
+            self.encoder_optimizer.step()
+            self.decoder_optimier.step()
 
         # after training, empty the archive set
         self.archive_set = []

@@ -101,7 +101,8 @@ if __name__ == "__main__":
                                    n_layers=config["Seqnovelty"]["n_layers"],
                                    device=device_list[0],
                                    lr=float(config["Seqnovelty"]["lr"]),
-                                   reg=float(config["Seqnovelty"]["reg"])), "ae_trajectory",),
+                                   reg=float(config["Seqnovelty"]["reg"]),
+                                   epochs=1), "ae_trajectory"),
                 }
 
                 # it is not none

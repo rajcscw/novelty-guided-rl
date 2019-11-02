@@ -22,8 +22,8 @@ Baselines done for Lava experiments; Now, running with AE methods.
 
 Minigrid is running now, Next unlock to be started
 
-- Collect numbers to beat
-- Crucial Phase III: Start tuning for NSRA encoders for all experiments
+- Collect numbers to beat - DONE 
+- Crucial Phase III: Start tuning for NSRA encoders for all experiments - Doing now
 - Pick atleast six/eight experiments
 - We need atleast six/eight experiments
 - **Definitely** Must include Multi room experiments where pure novelty failed
@@ -47,8 +47,15 @@ This makes sense. We can simulate every such experiment like robot falling type 
 
 |Experiment| Novelty  | Adaptive  | Status |
 |---|---|---|---|
-|  MiniGrid-LavaCrossingS9N1-v0    | Not needed  | Collecting baselines  |  Target of 0.8 (All of them)  |
-|  MiniGrid-LavaCrossingS9N2-v0    | Not needed  | Collecting baselines  |  Target of  0.6 (PPO)|
-|  MiniGrid-LavaCrossingS9N3-v0    | Not needed  | Collecting baselines  |  Target of 0.6 (PPO)  |
-|  MiniGrid-LavaCrossingS11N5-v0   | Not needed  | Collecting baselines  |  Target of  0.35 (KNN)|
+|  MiniGrid-LavaCrossingS9N1-v0    | Not needed  | Baselines collected, tuning AE    |  Target of 0.8 (All of them)  |
+|  MiniGrid-LavaCrossingS9N2-v0    | Not needed  | Baselines collected, tuning AE    |  Target of  0.6 (PPO)|
+|  MiniGrid-LavaCrossingS9N3-v0    | Not needed  | Baselines collected, tuning AE    |  Target of 0.6 (PPO)  |
+|  MiniGrid-LavaCrossingS11N5-v0   | Not needed  | Baselines collected, tuning AE    |  Target of  0.35 (KNN)|
+|  MiniGrid-MultiRoom-N4-S5-v0     | Not needed  | Baselines collected, tuning AE    |  Target of  0.8 (All of them)|
+|  MiniGrid-MultiRoom-N6-v0        | Not needed  | Baselines collected, tuning AE    |  Target of  0.2 (KNN)|
+|  MiniGrid-Unlock-v0              | Not needed  | Baselines collected, tuning AE    |  Target of  0.9 (PPO)|
+|  MiniGrid-UnlockPickup-v0        | Not needed  | Baselines collected, tuning AE    |  Target of  0.2 (KNN)|
+|  MiniGrid-BlockedUnlockPickup-v0 | Not needed  | Baselines collected, tuning AE    |  Target of  0.2 (KNN)|
+
+
 

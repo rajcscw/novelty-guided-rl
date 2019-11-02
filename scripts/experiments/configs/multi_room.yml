@@ -1,7 +1,7 @@
 # Environment Parameters
 environment:
   domain_name: gym
-  name: [#"MiniGrid-MultiRoom-N2-S4-v0",
+  name: ["MiniGrid-MultiRoom-N2-S4-v0",
          "MiniGrid-MultiRoom-N4-S5-v0",
          "MiniGrid-MultiRoom-N6-v0",
   ]
@@ -11,7 +11,7 @@ environment:
 # iterations and other batch parameters
 log:
   parallel_eval: 100 # do not change this
-  runs: 5
+  runs: 7
   iterations: 2000 # do not change this
   average_every: 50 # do not change this
   reset_every: 1 # do not change this
@@ -21,10 +21,11 @@ log:
 Seqnovelty:
   input_dim: 2
   hidden_size: 64 # can tune this
-  n_layers: 1 # can tune this
+  n_layers: 2 # can tune this
   lr: 1e-2 # can tune this
   reg: 0.0 # can tune this
   traj_sample_ratio: 6 # do not change this
+  epochs: 1
 
 
 # policy parameters
@@ -39,7 +40,7 @@ model:
 
 # ES Parameters
 ES:
-  n_workers: 56 # do not change this
+  n_workers: 36 # do not change this
   a: 1e-2 # do not change this
   sigma: 1e-1 # do not change this
   lr_decay: 0 # do not change this
@@ -49,7 +50,7 @@ ES:
 novelty:
   initial_rl_weight: 0.0 # do not change this
   rl_weight_delta: 0.01 # do not change this
-  t_max: 50 # do not change this
+  t_max: 100 # do not change this
 
 # Nearest neighbors novelty detector
 NNnovelty: # do not change this
