@@ -3,7 +3,7 @@
   <component name="ParserProjectConfiguration">
     <class-path />
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_12" default="false" project-jdk-name="Remote Python 3.7.4 (sftp://raj@129.26.78.124:22/home/raj/anaconda3/envs/novelty/bin/python3)" project-jdk-type="Python SDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_12" default="false" project-jdk-name="Python 3.7 (novelty)" project-jdk-type="Python SDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>

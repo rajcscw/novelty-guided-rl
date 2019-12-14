@@ -1,125 +1,24 @@
 import numpy as np
 import gym
-import warnings
 gym.logger.set_level(40)
-from gym import wrappers
 import torch
 from torch.nn import Softmax
+from novelty_guided_package.environments.gym_wrappers import GymEnvironment, PolicyType
+from novelty_guided_package.core_components.utility import to_device, get_equi_spaced_points
 
 
 class EpisodicReturnPolicy:
-    def __init__(self, model, env, config, state_dim, action_dim, is_deterministic=False, eval=1):
+    def __init__(self, model, config):
         self.model = model
-        self.env = env
         self.config = config
-        self.n_sv = state_dim
-        self.n_a = action_dim
-        self.is_deterministic = is_deterministic
         self.eval = eval
-        self.policy_type = config["policy"]["type"]
 
         # dummy variables to hold current parameter name
         self.parameter_name = None
         self.add_noise = False
 
-        # Set up the environment
-        self.env_params = self.config["environment"]
-
         # Set up the model
         self.model = model
-
-        # max steps
-        self.max_steps = config["environment"]["max_episode_steps"] if "max_episode_steps" in config["environment"].keys() else None
-
-    def get_behavoir_characteristic(self, env, init_beh=None):
-        # 2-D environments
-        if self.env_params["name"] in ["Hopper-v2", "Swimmer-v2", "Walker2d-v2", "HalfCheetah-v2"]:
-            behavior = np.array(self._get_pos(env.env)[0:2])
-            if init_beh is not None:
-                x_pos_now = behavior[0]
-                x_pos_init = init_beh[0]
-                if np.sign(x_pos_now - x_pos_init) < 0.0:  # clip the behavior space
-                    behavior[0] = x_pos_init
-                offset = (behavior - init_beh) ** 2
-                return offset
-            else:
-                return behavior
-        # 3-D environments
-        elif self.env_params["name"] in ["Humanoid-v2", "HumanoidStandup-v2"]:
-            behavior = np.array(self._get_pos(env.env)[0:3])
-            if init_beh is not None:
-                x_pos_now = behavior[0]
-                x_pos_init = init_beh[0]
-                if np.sign(x_pos_now - x_pos_init) < 0.0:  # clip the behavior space
-                    behavior[0] = x_pos_init
-                offset = (behavior - init_beh) ** 2
-                return offset
-            else:
-                return behavior
-        elif self.env_params["name"] in ["Ant-v2"]:
-            # current behavior
-            behavior = np.array(self._get_body_com(env.env)[0:1])
-
-            # see if previous behavior is set
-            if self.prev_beh is not None:
-                # if previous behavior is present, then take the offset
-                # and clip them probably
-                offset = (behavior - self.prev_beh)
-                if offset[0] <= 0.0:
-                    offset[0] = 0.0
-
-                # set the prev beh to current
-                self.prev_beh = behavior
-
-                return offset
-            else:
-                # first time
-                self.prev_beh = behavior
-                return behavior
-
-        # Pendulum environments
-        elif "InvertedPendulum-v2" == self.env_params["name"]:
-            cart_pos = env.env.get_body_com("cart")[:2]
-            pole_pos = env.env.get_body_com("pole")[:2]
-            return np.concatenate([cart_pos, pole_pos])
-        elif "InvertedDoublePendulum-v2" == self.env_params["name"]:
-            cart_pos = env.env.get_body_com("cart")[:2]
-            pole_pos = env.env.get_body_com("pole")[:2]
-            pole_pos2 = env.env.get_body_com("pole2")[:2]
-            return np.concatenate([cart_pos, pole_pos, pole_pos2])
-        # Reacher environments
-        elif "Reacher-v2" == self.env_params["name"]:
-            feedback_signal = (env.env.get_body_com("fingertip") - env.env.get_body_com("target"))[0:2]
-            return feedback_signal
-        # for mini grid environments
-        elif "Grid" in self.env_params["name"]:
-            if init_beh is not None:
-                behavior = np.array(env.agent_pos)
-                offset = (behavior - init_beh)
-                return offset
-            else:
-                # just get the agent pos
-                behavior = np.array(env.agent_pos)
-                return behavior
-
-    def get_equi_spaced_points(self, seq, to_len):
-        seq_len = seq.shape[0]
-
-        if seq_len == 0:
-            return np.zeros((to_len, 2))
-
-        space = int(np.ceil(seq_len/to_len))
-        if space > 0:
-            spaced_indices = np.arange(0, seq_len - 1, space)
-            if len(spaced_indices) < to_len:
-                # then pad
-                padded = np.zeros(to_len-spaced_indices.shape[0], dtype=np.int8).flatten()
-                spaced_indices = np.concatenate((padded, spaced_indices))
-        else:
-            spaced_indices = np.arange(0, seq_len)
-        assert spaced_indices.shape[0] == to_len
-        sampled = seq[spaced_indices]
-        return sampled
 
     def get_best_action(self, env, state, device):
 
@@ -127,11 +26,11 @@ class EpisodicReturnPolicy:
         state = torch.from_numpy(state.flatten()).type(torch.float32).view(1,-1)
 
         # send it to the device
-        state = self.to_device(state, device)
+        state = to_device(state, device)
 
         network_output = self.model.net.forward(state)
 
-        if self.policy_type == "gaussian":
+        if env.policy_type == PolicyType.GAUSSIAN:
             # apply gaussian policy
             action = self.gaussian_policy(network_output)
 
@@ -139,7 +38,7 @@ class EpisodicReturnPolicy:
             a_min = env.action_space.low.reshape((-1,1))
             a_max = env.action_space.high.reshape((-1,1))
             action = np.clip(action, a_min, a_max)
-        elif self.policy_type == "softmax":
+        elif env.policy_type == PolicyType.SOFTMAX:
             # apply softmax
             action = self.softmax_policy(network_output)
 
@@ -164,63 +63,36 @@ class EpisodicReturnPolicy:
 
         return action
 
-    def _get_pos(self, env):
-        mass = env.model.body_mass.reshape(-1,1)
-        xpos = env.data.xipos
-        center = (np.sum(mass * xpos, 0) / np.sum(mass))
-        return center[0], center[1], center[2]
+    def __call__(self,
+                 parameter_value,
+                 device,
+                 render=False,
+                 save_loc=None):
 
-    def _get_body_com(self, env):
-        pos = env.get_body_com("torso")
-        return pos
-
-    def __call__(self, parameter_value, device, seed, eval=False, render=False, save_loc=None):
-
-        env = self.env
-
-        # create the environment
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            # env = gym.make(self.env_params["name"])
-            # if self.env_params["mini_grid"]: # seeds are applied here
-            #     env.seed(seed)
-            if self.max_steps:
-                env.max_steps = self.max_steps
-                env._max_episode_steps = self.max_steps
-
-            if render:
-                env = wrappers.Monitor(env,
-                                       directory=save_loc,
-                                       force=True)
+        # let's create the env here
+        env = GymEnvironment(self.config["environment"]["name"],
+                             self.config["environment"]["max_episode_steps"],
+                             render,
+                             save_loc)
 
         # build a model with this parameter
         if parameter_value is not None:
             self.model.set_layer_value(self.parameter_name, parameter_value)
 
         # pass the model to the device
-        self.model.net = self.to_device(self.model.net, device)
+        self.model.net = to_device(self.model.net, device)
 
         # now we actually play an episode with the environment
         current_state = env.reset()
 
         # get the init beh
-        if render:
-            init_beh = self.get_behavoir_characteristic(env.env, None)
-        else:
-            init_beh = self.get_behavoir_characteristic(env, None)
+        init_beh = env.get_behavior(init_beh=None)
 
         episodic_return = 0
         stats = []
         trajectory = []
         steps_taken = 0
         while True:
-            # Render the environment
-            if render:
-                env.render(mode="rgb_array")
-
-            if self.env_params["mini_grid"]:
-                current_state = current_state["image"].flatten()
-
             # Choose the best action
             current_action = self.get_best_action(env, current_state, device)
 
@@ -230,29 +102,19 @@ class EpisodicReturnPolicy:
             steps_taken += 1
             episodic_return += current_reward
 
-            if done or (self.max_steps is not None and steps_taken >= self.max_steps):
+            if done:
                 break
 
             # Set the next state
             current_state = next_state
 
             # get the behavior at this step
-            if render:
-                behavior = self.get_behavoir_characteristic(env.env, init_beh)
-            else:
-                behavior = self.get_behavoir_characteristic(env, init_beh)
+            behavior = env.get_behavior(init_beh)
             trajectory.append(behavior)
 
         # get the behavior
         behavior = np.array(trajectory)
-        behavior = self.get_equi_spaced_points(behavior, self.config["behavior"]["traj_length"])
+        behavior = get_equi_spaced_points(behavior, self.config["behavior"]["traj_length"])
 
         return episodic_return, behavior, stats
-
-    @staticmethod
-    def to_device(tensor, device):
-        if device == "cpu":
-            return tensor
-        else:
-            return tensor.cuda(device)
 

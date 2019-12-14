@@ -35,6 +35,9 @@ class PyTorchModel:
         # set counters
         self.__set__counters()
 
+        # optimizer
+        self.optimizer = torch.optim.Adam(params=self.net.parameters())
+
     def __set__counters(self):
         if self.sampling_strategy == SamplingStrategy.BOTTOM_UP:
             self.last = -1
@@ -220,9 +223,6 @@ class PyTorchModel:
             self.set_param_value(param+value, param_type, param_value)
 
     def step_layer(self, layer_name, gradients):
-
-        # reset all gradients
-        self.optimizer.zero_grad()
 
         self.set_layer_value_by_name(layer_name, gradients, ".grad")
 

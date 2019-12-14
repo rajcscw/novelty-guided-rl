@@ -1,17 +1,12 @@
-import numpy as np
-import gym
 from tqdm import tqdm
-import torch
-from torch import nn
 from novelty_guided_package.core_components.models import PyTorchModel
 from novelty_guided_package.core_components.estimators import ES
-from novelty_guided_package.core_components.loss import EpisodicReturnPolicy
-from novelty_guided_package.core_components.SGDOptimizersES import RMSProp as RMSPropES
-from novelty_guided_package.seq2seq_components.Seq2SeqNovelty import NoveltyDetectionModule as AEModel
+from novelty_guided_package.core_components.objective import EpisodicReturnPolicy
 from novelty_guided_package.novelty_components.KNNNovelty import NoveltyDetectionModule as KNNModel
 from novelty_guided_package.novelty_components.adaptor import NoveltyAdaptor
-from novelty_guided_package.core_components.utility import rolling_mean
 from novelty_guided_package.core_components.networks import PolicyNet
+from novelty_guided_package.environments.gym_wrappers import GymEnvironment
+from novelty_guided_package.core_components.utility import rolling_mean
 
 
 class ESTrainer:
@@ -21,28 +16,16 @@ class ESTrainer:
         self.exp_tracker = exp_tracker
         self.rl_weight = config["novelty"]["initial_rl_weight"]
         self.adaptive = config["novelty"]["adaptive"]
+        self.max_iter = config["other"]["max_iter"]
+        self.n_workers = config["other"]["n_workers"]
+        self.log_every = config["other"]["log_every"]
         self.device_list = device_list
+        self.n_workers = config["other"]["n_workers"]
+        self.n_samples = config["other"]["n_samples"]
         self.strategy_name = self._get_strategy_name()
 
-        # it creates the environment here
-        self.env, self.state_dim, self.action_dim = self._create_env(task_name, self.config)
-
-    def _create_env(self, task_name, config):
-        # create environments to get
-        if self.config["environment"]["mini_grid"]:
-            env = gym.make(self.config["environment"]["name"])
-            action_dim = env.action_space.n
-            state_dim = 7 * 7 * 3 # hard-coded for now
-        else: # for other continuous control tasks
-            env = gym.make(self.config["environment"]["name"])
-            action_dim = env.action_space.shape[0]
-            state_dim = env.observation_space.shape[0]
-        return env, state_dim, action_dim
-
     def _create_novelty_detector(self):
-        if self.config["novelty"]["technique"] == "SeqNovelty":
-            return AEModel.from_dict(self.config["SeqNovelty"])
-        elif self.config["novelty"]["technique"] == "KNNnovelty":
+        if self.config["novelty"]["technique"] == "KNNnovelty":
             return KNNModel.from_dict(self.config["KNNnovelty"])
         else:
             return None
@@ -50,19 +33,20 @@ class ESTrainer:
     def _get_strategy_name(self):
         return self.config["novelty"]["technique"]
 
-    def run(self):
-        max_iter = int(self.config["log"]["iterations"])
+    @staticmethod
+    def _infer_policy_parameters(env_name):
+        env = GymEnvironment(env_name, 100) # create a dummy env
+        state_dim, action_dim, policy_type = env.state_dim, env.action_dim, env.policy_type
+        return state_dim, action_dim, policy_type
 
-        # policy types
-        if self.config["policy"]["type"] == "gaussian":
-            n_output = self.action_dim if self.config["policy"]["is_deterministic"] else self.action_dim * 2
-        elif self.config["policy"]["type"] == "softmax":
-            n_output = self.action_dim
+    def _get_all_components(self):
+        state_dim, action_dim, policy_type = ESTrainer._infer_policy_parameters(self.config["environment"]["name"])
 
         # network
-        net = PolicyNet(n_input=self.state_dim,
+        net = PolicyNet(n_input=state_dim,
                         n_hidden=self.config["model"]["hidden_size"],
-                        n_output=n_output)
+                        n_output=action_dim,
+                        policy_type=policy_type)
 
         # novelty detector
         novelty_detector = self._create_novelty_detector()
@@ -72,20 +56,12 @@ class ESTrainer:
 
         # the objective function
         objective = EpisodicReturnPolicy(model=model,
-                                         env=self.env,
-                                         config=self.config,
-                                         state_dim=self.state_dim,
-                                         action_dim=self.action_dim,
-                                         is_deterministic=self.config["policy"]["is_deterministic"])
-
-        # optimizer
-        optimizer = RMSPropES(learning_rate=float(self.config["ES"]["a"]),
-                              decay_rate=float(self.config["ES"]["momentum"]))
+                                         config=self.config)
 
         # estimator
-        estimator = ES(parallel_workers=int(self.config["ES"]["n_workers"]),
+        estimator = ES(parallel_workers=self.n_workers,
                        sigma=float(self.config["ES"]["sigma"]),
-                       k=int(self.config["log"]["parallel_eval"]),
+                       k=self.n_samples,
                        loss_function=objective,
                        device_list=self.device_list,
                        model=model,
@@ -97,20 +73,28 @@ class ESTrainer:
                                      rl_weight_delta=self.config["novelty"]["rl_weight_delta"],
                                      t_max=self.config["novelty"]["t_max"])
 
+        return model, estimator, objective, novelty_detector, nov_adaptor
+
+    def run(self):
+
+        # get all components needed for training
+        model, estimator, objective, novelty_detector, nov_adaptor = self._get_all_components()
+
         # the main loop
         episodic_total_reward = []
         reward_pressure = []
         running_total_reward = 0
         running_reward_pressure = 0.0
-        for i in tqdm(range(max_iter)):
-            total_reward = self.run_epoch(model, estimator, optimizer, objective, novelty_detector, nov_adaptor)
+        for i in tqdm(range(self.max_iter)):
+            total_reward = self.run_epoch(model, estimator, objective, novelty_detector, nov_adaptor)
             running_total_reward += total_reward
             running_reward_pressure += nov_adaptor.current_rl_weight
 
-            if (i+1) % int(self.config["log"]["average_every"]) == 0:
-                running_total_reward = running_total_reward / int(self.config["log"]["average_every"])
-                running_reward_pressure = running_reward_pressure / int(self.config["log"]["average_every"])
-                self.exp_tracker.log(f"Processed Iteration {i+1},episodic return {running_total_reward}, lr: {optimizer.get_learning_rate()}, reward_pressure: {running_reward_pressure}")
+            if (i+1) % self.log_every == 0:
+                running_total_reward = running_total_reward / self.log_every
+                running_reward_pressure = running_reward_pressure / self.log_every
+
+                self.exp_tracker.log(f"Processed Iteration {i+1},episodic return {running_total_reward}, reward_pressure: {running_reward_pressure}")
                 running_total_reward = 0
                 running_reward_pressure = 0
 
@@ -118,22 +102,19 @@ class ESTrainer:
             episodic_total_reward.append(total_reward)
             reward_pressure.append(nov_adaptor.current_rl_weight)
 
-            # step optimizer
-            optimizer.step_t()
-
         # close the pool now
         estimator.p.close()
 
         # save the final results
         self.exp_tracker.save_results({
-            "episodic_total_rewards": rolling_mean(episodic_total_reward, 20).tolist(),
-            "reward_pressure": rolling_mean(reward_pressure, 20).tolist()
+            "episodic_total_rewards": episodic_total_reward,
+            "reward_pressure": reward_pressure
         })
 
         # Log all the config parameters
         self.exp_tracker.save_config(self.config)
 
-    def run_epoch(self, model, estimator, optimizer, objective, novelty_detector, novelty_adaptor):
+    def run_epoch(self, model, estimator, objective, novelty_detector, novelty_adaptor):
         # get the current parameter name and value
         current_layer_name, current_layer_value = model.sample_layer()
 
@@ -143,12 +124,9 @@ class ESTrainer:
         # step using default optimizer
         model.step_layer(current_layer_name, -gradients)
 
-        # seed for evaluation (same type of generation as in estimators)
-        seed = np.random.randint(0, int(self.config["log"]["parallel_eval"]/2))
-
         # evaluate the learning
         objective.parameter_name = current_layer_name
-        total_reward, current_behavior, _ = objective(None, self.device_list[0], seed, True)
+        total_reward, current_behavior, _ = objective(None, self.device_list[0])
 
         # novelty model - a mini-batch step
         if novelty_detector is not None:
@@ -164,9 +142,6 @@ class ESTrainer:
 
         # set new parameters
         estimator.rl_weight = novelty_adaptor.current_rl_weight
-
-        # step optimizer
-        optimizer.step_t()
 
         # return the total reward
         return total_reward

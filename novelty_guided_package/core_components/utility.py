@@ -43,3 +43,23 @@ def init_multiproc():
         set_start_method('spawn')
     except RuntimeError:
         pass
+
+
+def get_equi_spaced_points(seq, to_len):
+    seq_len = seq.shape[0]
+
+    if seq_len == 0:
+        return np.zeros((to_len, 2))
+
+    space = int(np.ceil(seq_len/to_len))
+    if space > 0:
+        spaced_indices = np.arange(0, seq_len - 1, space)
+        if len(spaced_indices) < to_len:
+            # then pad
+            padded = np.zeros(to_len-spaced_indices.shape[0], dtype=np.int8).flatten()
+            spaced_indices = np.concatenate((padded, spaced_indices))
+    else:
+        spaced_indices = np.arange(0, seq_len)
+    assert spaced_indices.shape[0] == to_len
+    sampled = seq[spaced_indices]
+    return sampled

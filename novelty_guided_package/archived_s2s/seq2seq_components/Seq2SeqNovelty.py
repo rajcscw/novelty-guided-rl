@@ -85,6 +85,10 @@ class NoveltyDetectionModule:
         # archive set for the current step
         self.archive_set = []
 
+    @classmethod
+    def from_dict(cls, config):
+        return cls(**config)
+
     def add_behaviors(self, beh):
         # simple add the behaviors
         self.archive_set.append(beh)

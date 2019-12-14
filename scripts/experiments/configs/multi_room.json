@@ -1,75 +1,41 @@
-# Environment Parameters
-environment:
-  domain_name: gym
-  name: ["MiniGrid-MultiRoom-N2-S4-v0",
-  ]
-  mini_grid: True
-  max_episode_steps: 300
-
-# iterations and other batch parameters
-log:
-  parallel_eval: 10
-  runs: 3
-  iterations: 100
-  average_every: 50
-  reset_every: 1
-  save_every: 200
-  initial_pad_value: 0
-
-Seqnovelty:
-  input_dim: 2
-  hidden_size: 64
-  n_layers: 2
-  lr: 1e-2
-  reg: 0.0
-  traj_sample_ratio: 6
-  epochs: 1
-
-# policy parameters
-policy:
-  type: softmax
-  is_deterministic: False
-
-# Model configuration
-model:
-  hidden_size: 64
-
-
-# ES Parameters
-ES:
-  n_workers: 36
-  a: 1e-2
-  sigma: 1e-1
-  lr_decay: 0
-  momentum: 0.0
-
-# general novelty config
-novelty:
-  initial_rl_weight: 1.0
-  rl_weight_delta: 0.01
-  t_max: 100
-  technique: None
-  adaptive: True
-
-# behavior
-behavior:
-  traj_length: 50
-
-# Nearest neighbors novelty detector
-KNNnovelty:
-  k: 10
-  limit: 1000
-
-# PPO configuration
-PPO:
-  nbatch_train: 50
-  log_every: 50
-  ent_coef: 0.0
-  lr: 0.001
-  vf_coef: 0.5
-  max_grad_norm: 0.5
-  gamma: 0.99
-  lam: 0.95
-  noptepochs: 1
-  cliprange: 0.2
-  value_network: 'copy'
+{
+  "environment": {
+    "domain_name": "gym",
+    "name": "MiniGrid-MultiRoom-N2-S4-v0",
+    "max_episode_steps": 300
+  },
+  "model": {
+    "hidden_size": 64
+  },
+  "ES": {
+    "a": "1e-2",
+    "sigma": "1e-1"
+  },
+  "novelty": {
+    "initial_rl_weight": 1.0,
+    "rl_weight_delta": 0.01,
+    "t_max": 100,
+    "technique": "KNNnovelty",
+    "adaptive": true
+  },
+  "behavior": {
+    "traj_length": 50
+  },
+  "KNNnovelty": {
+    "k": 10,
+    "limit": 1000
+  },
+  "PPO": {
+    "nbatch_train": 50,
+    "log_every": 50,
+    "ent_coef": 0.0,
+    "lr": 0.001,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "gamma": 0.99,
+    "lam": 0.95,
+    "noptepochs": 1,
+    "cliprange": 0.2,
+    "value_network": "copy"
+  }
+}

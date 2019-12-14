@@ -1,13 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='components',
+    name='novelty_guided_package',
     version='0.0.1',
-    packages=["components"],
+    packages=["novelty_guided_package"],
     install_requires=[
+        "opencv-python",
         "numpy",
         "torch",
-        "gym==0.14.0",
+        "gym",
         "gym-minigrid",
         "pyyaml",
         "pandas",
@@ -15,8 +16,9 @@ setup(
         "seaborn",
         "scikit-image",
         "sklearn",
-        #"mujoco-py"
+        #"mujoco-py",
         "tensorflow",
-        "joblib"
+        "joblib",
+        "tqdm"
     ]
 )
