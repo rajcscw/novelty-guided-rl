@@ -1,40 +1,37 @@
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
 import warnings
+from novelty_guided_package.novelty_components.abstract_detection_module import AbstractNoveltyDetector
 
 
-class NoveltyDetectionModule:
-    def __init__(self, k, limit):
-        # copy of params
-        self.k = k
-        self.behavior_limit = limit
+class NearestNeighborDetection(AbstractNoveltyDetector):
+    def __init__(self, n_neighbors, archive_size):
+        super().__init__()
+        self.n_neighbors = n_neighbors
+        self.archive_size = archive_size
 
         # model
-        self.behavior_model = NearestNeighbors(n_neighbors=k)
+        self.behavior_model = NearestNeighbors(n_neighbors=self.n_neighbors)
 
-        # set of behavoirs (archive set)
-        self.behavoirs = []
+        # set of behaviors (archive set)
+        self.behaviors = []
 
         # counters to set if the models are fitted
         self.fitted_count = 0
 
-    @classmethod
-    def from_dict(cls, config):
-        return cls(**config)
+    def _add_behaviors(self, beh):
+        self.behaviors.append(beh)
+        self.behaviors = self.behaviors[-self.archive_size:]
 
-    def add_behaviors(self, beh):
-        self.behavoirs.append(beh)
-        self.behavoirs = self.behavoirs[-self.behavior_limit:]
+    def save_behaviors(self, behaviors):
 
-    def fit_model(self, behaviors):
-
-        # add them to the behavoir list
+        # add them to the behavior list
         for beh in behaviors:
-            self.add_behaviors(beh)
+            self._add_behaviors(beh)
             self.fitted_count += 1
 
         # fit the model now
-        data_points = np.array(self.behavoirs).reshape(len(self.behavoirs), -1)
+        data_points = np.array(self.behaviors).reshape(len(self.behaviors), -1)
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -43,12 +40,16 @@ class NoveltyDetectionModule:
     def step(self):
         pass
 
-    def get_novelty(self, beh):
+    def get_novelty(self, behavior):
         # get nearest neighbors and its distance to the current policy
         if self.fitted_count > self.behavior_model.n_neighbors:
-            data_point = beh.reshape(1, -1)
+            data_point = behavior.reshape(1, -1)
             neighbors_distance, _ = self.behavior_model.kneighbors(data_point)
             novelty = np.sum(neighbors_distance) / self.behavior_model.n_neighbors
         else:
             novelty = 0.0
         return novelty
+
+    @classmethod
+    def from_dict(cls, dict_config):
+        return  cls(**dict_config)

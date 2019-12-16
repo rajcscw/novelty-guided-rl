@@ -55,7 +55,7 @@ class ES:
                 nov = float(self.novelty_detector.get_novelty(beh))
 
                 # fit the model with new observed behavoirs
-                self.novelty_detector.fit_model([beh])
+                self.novelty_detector.save_behaviors([beh])
             else:
                 nov = 0.0
 

@@ -380,7 +380,7 @@ def regression_analysis(df):
     ycols = ['score']
     import statsmodels.api as sm
     mod = sm.OLS(df[ycols], sm.add_constant(df[xcols]), hasconst=False)
-    res = mod.fit()
+    res = mod.save()
     print(res.summary())
 
 def test_smooth():

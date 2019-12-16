@@ -33,7 +33,7 @@ for i in range(1000):
         sequences.append(sequence)
 
     # train it now
-    autoencoder.fit_model(sequences)
+    autoencoder.save(sequences)
     loss, reconstructed = autoencoder.step()
 
     running_loss += loss

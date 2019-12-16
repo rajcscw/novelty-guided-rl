@@ -4,6 +4,15 @@
     "name": "MiniGrid-MultiRoom-N2-S4-v0",
     "max_episode_steps": 300
   },
+  "run": {
+    "parallel_eval": 10,
+    "runs": 3,
+    "iterations": 500 ,
+    "average_every": 50,
+    "reset_every": 1,
+    "save_every": 200,
+    "initial_pad_value": 0
+  },
   "model": {
     "hidden_size": 64
   },
@@ -15,15 +24,20 @@
     "initial_rl_weight": 1.0,
     "rl_weight_delta": 0.01,
     "t_max": 100,
-    "technique": "KNNnovelty",
+    "technique": "AEnovelty",
     "adaptive": true
   },
   "behavior": {
     "traj_length": 50
   },
   "KNNnovelty": {
-    "k": 10,
-    "limit": 1000
+    "n_neighbors": 10,
+    "archive_size": 1000
+  },
+  "AEnovelty": {
+    "n_hidden": 100,
+    "lr": 1e-2,
+    "batch_size": 20
   },
   "PPO": {
     "nbatch_train": 50,

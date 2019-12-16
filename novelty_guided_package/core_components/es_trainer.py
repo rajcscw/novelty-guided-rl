@@ -2,7 +2,8 @@ from tqdm import tqdm
 from novelty_guided_package.core_components.models import PyTorchModel
 from novelty_guided_package.core_components.estimators import ES
 from novelty_guided_package.core_components.objective import EpisodicReturnPolicy
-from novelty_guided_package.novelty_components.KNNNovelty import NoveltyDetectionModule as KNNModel
+from novelty_guided_package.novelty_components.KNNNovelty import NearestNeighborDetection as KNNModel
+from novelty_guided_package.novelty_components.AENovelty import AutoEncoderBasedDetection as AEModel
 from novelty_guided_package.novelty_components.adaptor import NoveltyAdaptor
 from novelty_guided_package.core_components.networks import PolicyNet
 from novelty_guided_package.environments.gym_wrappers import GymEnvironment
@@ -27,8 +28,11 @@ class ESTrainer:
     def _create_novelty_detector(self):
         if self.config["novelty"]["technique"] == "KNNnovelty":
             return KNNModel.from_dict(self.config["KNNnovelty"])
-        else:
-            return None
+        elif self.config["novelty"]["technique"] == "AEnovelty":
+            config = self.config["AEnovelty"].copy()
+            config.update({"n_input": self.config["behavior"]["traj_length"] * 2})
+            config.update({"device": self.device_list[0]})
+            return AEModel.from_dict(config)
 
     def _get_strategy_name(self):
         return self.config["novelty"]["technique"]
@@ -107,8 +111,8 @@ class ESTrainer:
 
         # save the final results
         self.exp_tracker.save_results({
-            "episodic_total_rewards": episodic_total_reward,
-            "reward_pressure": reward_pressure
+            "episodic_total_rewards": rolling_mean(episodic_total_reward, self.log_every).tolist(),
+            "reward_pressure": rolling_mean(reward_pressure, self.log_every).tolist()
         })
 
         # Log all the config parameters
@@ -132,7 +136,7 @@ class ESTrainer:
         if novelty_detector is not None:
 
             # can we just add this behavior for the learning instead of one from all the perturbations
-            estimator.novelty_detector.fit_model([current_behavior])
+            estimator.novelty_detector.save_behaviors([current_behavior])
 
             novelty_detector.step()
 
