@@ -8,12 +8,12 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-from archived.components.openai_baselines.common import VecFrameStack
-from archived.components.openai_baselines.common import parse_unknown_args, make_vec_env, make_env
-from archived.components.openai_baselines.common import get_session
-from archived.components.openai_baselines import logger
+from novelty_guided_package.openai_baselines.common import VecFrameStack
+from novelty_guided_package.openai_baselines.common import parse_unknown_args, make_vec_env, make_env
+from novelty_guided_package.openai_baselines.common import get_session
+from novelty_guided_package.openai_baselines import logger
 from importlib import import_module
-from archived.components.openai_baselines.common import VecNormalize
+from novelty_guided_package.openai_baselines.common import VecNormalize
 
 try:
     from mpi4py import MPI

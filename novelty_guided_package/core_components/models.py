@@ -13,7 +13,7 @@ class SamplingStrategy(Enum):
 
 
 class PyTorchModel:
-    def __init__(self, net, strategy=SamplingStrategy.RANDOM):
+    def __init__(self, net, lr, strategy=SamplingStrategy.RANDOM):
         """
         :param net: a pytorch net module
         """
@@ -36,7 +36,7 @@ class PyTorchModel:
         self.__set__counters()
 
         # optimizer
-        self.optimizer = torch.optim.Adam(params=self.net.parameters())
+        self.optimizer = torch.optim.SGD(params=self.net.parameters(), lr=lr)
 
     def __set__counters(self):
         if self.sampling_strategy == SamplingStrategy.BOTTOM_UP:
@@ -51,9 +51,6 @@ class PyTorchModel:
             return torch.float32
         elif str == "torch.float64":
             return torch.float64
-
-    def reset_cache(self, config):
-        self.optimizer = torch.optim.RMSprop(params=self.net.parameters(), lr=float(config["optimizer"]["lr"]))
 
     def forward(self, input):
         output = self.net(input)

@@ -16,7 +16,7 @@ setup(
         "seaborn",
         "scikit-image",
         "sklearn",
-        #"mujoco-py",
+        "mujoco-py<2.1,>=2.0",
         "tensorflow",
         "joblib",
         "tqdm"

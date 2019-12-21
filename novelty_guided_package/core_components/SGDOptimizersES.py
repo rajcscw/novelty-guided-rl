@@ -1,7 +1,7 @@
 import torch
 
 
-class Optimizer():
+class Optimizer:
     def __init__(self, learning_rate):
         self.learning_rate = learning_rate
         self.t = 1

@@ -8,6 +8,8 @@ from novelty_guided_package.novelty_components.adaptor import NoveltyAdaptor
 from novelty_guided_package.core_components.networks import PolicyNet
 from novelty_guided_package.environments.gym_wrappers import GymEnvironment
 from novelty_guided_package.core_components.utility import rolling_mean
+from novelty_guided_package.core_components.SGDOptimizersES import RMSProp
+from novelty_guided_package.environments.gym_wrappers import PolicyType
 
 
 class ESTrainer:
@@ -41,6 +43,7 @@ class ESTrainer:
     def _infer_policy_parameters(env_name):
         env = GymEnvironment(env_name, 100) # create a dummy env
         state_dim, action_dim, policy_type = env.state_dim, env.action_dim, env.policy_type
+        action_dim = action_dim * 2 if env.policy_type == PolicyType.GAUSSIAN else action_dim
         return state_dim, action_dim, policy_type
 
     def _get_all_components(self):
@@ -56,7 +59,7 @@ class ESTrainer:
         novelty_detector = self._create_novelty_detector()
 
         # set up the model
-        model = PyTorchModel(net=net)
+        model = PyTorchModel(net=net, lr=float(self.config["ES"]["lr"]))
 
         # the objective function
         objective = EpisodicReturnPolicy(model=model,
@@ -72,17 +75,20 @@ class ESTrainer:
                        rl_weight=self.rl_weight,
                        novelty_detector=novelty_detector)
 
+        # optimizer
+        optimizer = RMSProp(learning_rate=float(self.config["ES"]["lr"]))
+
         # novelty adaptor
         nov_adaptor = NoveltyAdaptor(rl_weight=self.rl_weight,
                                      rl_weight_delta=self.config["novelty"]["rl_weight_delta"],
                                      t_max=self.config["novelty"]["t_max"])
 
-        return model, estimator, objective, novelty_detector, nov_adaptor
+        return model, estimator, objective, novelty_detector, nov_adaptor, optimizer
 
     def run(self):
 
         # get all components needed for training
-        model, estimator, objective, novelty_detector, nov_adaptor = self._get_all_components()
+        model, estimator, objective, novelty_detector, nov_adaptor, optimizer = self._get_all_components()
 
         # the main loop
         episodic_total_reward = []
@@ -90,7 +96,7 @@ class ESTrainer:
         running_total_reward = 0
         running_reward_pressure = 0.0
         for i in tqdm(range(self.max_iter)):
-            total_reward = self.run_epoch(model, estimator, objective, novelty_detector, nov_adaptor)
+            total_reward = self.run_epoch(model, estimator, optimizer, objective, novelty_detector, nov_adaptor)
             running_total_reward += total_reward
             running_reward_pressure += nov_adaptor.current_rl_weight
 
@@ -118,7 +124,7 @@ class ESTrainer:
         # Log all the config parameters
         self.exp_tracker.save_config(self.config)
 
-    def run_epoch(self, model, estimator, objective, novelty_detector, novelty_adaptor):
+    def run_epoch(self, model, estimator, optimizer, objective, novelty_detector, novelty_adaptor):
         # get the current parameter name and value
         current_layer_name, current_layer_value = model.sample_layer()
 

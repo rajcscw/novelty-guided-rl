@@ -53,13 +53,11 @@ class EpisodicReturnPolicy:
 
         # break them into mean (mu) and sigma of gaussian distribution
         network_output = network_output.cpu().data.numpy().flatten()
-        mean, sd = network_output[:self.n_a], network_output[self.n_a:]
+        n_a = int(network_output.shape[0] / 2)
+        mean, sd = network_output[:n_a], network_output[n_a:]
 
-        if self.is_deterministic:
-            action = mean.reshape((self.n_a, 1))
-        else:
-            sd = np.log(1 + np.exp(sd))
-            action = np.random.normal(loc=mean.reshape(-1,1), scale=sd.reshape(-1,1), size=(self.n_a,1))
+        sd = np.log(1 + np.exp(sd))
+        action = np.random.normal(loc=mean.reshape(-1,1), scale=sd.reshape(-1,1), size=(n_a,1))
 
         return action
 

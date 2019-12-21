@@ -19,7 +19,7 @@ class PolicyType(Enum):
 
 
 class GymEnvironment:
-    def __init__(self, name, max_episode_steps, render=False, save_loc=None):
+    def __init__(self, name, max_episode_steps=None, render=False, save_loc=None):
         self.name = name
         self.max_episode_steps = max_episode_steps
         self.env = self._init_env(name, max_episode_steps)
@@ -37,8 +37,9 @@ class GymEnvironment:
     @staticmethod
     def _init_env(name, max_episode_steps):
         env = gym.make(name)
-        env.max_steps = max_episode_steps
-        env._max_episode_steps = max_episode_steps
+        if max_episode_steps:
+            env.max_steps = max_episode_steps
+            env._max_episode_steps = max_episode_steps
         return env
 
     @property
@@ -56,6 +57,10 @@ class GymEnvironment:
     @property
     def action_space_type(self):
         return ActionSpaceType.CONTINUOUS if isinstance(self.env.action_space, spaces.Box) else ActionSpaceType.DISCRETE
+
+    @property
+    def action_space(self):
+        return self.env.action_space
 
     @property
     def policy_type(self):
