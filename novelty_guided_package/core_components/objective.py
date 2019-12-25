@@ -8,11 +8,12 @@ from novelty_guided_package.core_components.utility import to_device, get_equi_s
 
 
 class EpisodicReturnPolicy:
-    def __init__(self, model, task_name, max_episode_steps, behavior_traj_length):
+    def __init__(self, model, task_name, max_episode_steps, behavior_traj_length, stochastic):
         self.model = model
         self.task_name = task_name
         self.max_episode_steps = max_episode_steps
         self.behavior_traj_length = behavior_traj_length
+        self.stochastic = stochastic
 
         # parameter name
         self.parameter_name = None
@@ -53,11 +54,13 @@ class EpisodicReturnPolicy:
 
         # break them into mean (mu) and sigma of gaussian distribution
         network_output = network_output.cpu().data.numpy().flatten()
-        n_a = int(network_output.shape[0] / 2)
-        mean, sd = network_output[:n_a], network_output[n_a:]
-
-        sd = np.log(1 + np.exp(sd))
-        action = np.random.normal(loc=mean.reshape(-1,1), scale=sd.reshape(-1,1), size=(n_a,1))
+        if self.stochastic:
+            n_a = int(network_output.shape[0] / 2)
+            mean, sd = network_output[:n_a], network_output[n_a:]
+            sd = np.log(1 + np.exp(sd))
+            action = np.random.normal(loc=mean.reshape(-1,1), scale=sd.reshape(-1,1), size=(n_a,1))
+        else:
+            action = network_output
 
         return action
 

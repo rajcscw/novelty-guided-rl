@@ -32,6 +32,7 @@ class ESTrainer:
         self.n_samples = self.config["run_time"]["n_samples"]
         self.sigma = float(self.config["ES"]["sigma"])
         self.lr = float(self.config["ES"]["lr"])
+        self.stochastic = self.config["environment"]["stochastic"]
 
         # adaptive
         self.adaptive = self.config["method"]["adaptive"]["adapt"]
@@ -65,14 +66,14 @@ class ESTrainer:
             return None
 
     @staticmethod
-    def _infer_policy_parameters(env_name):
+    def _infer_policy_parameters(env_name, stochastic):
         env = GymEnvironment(env_name, 100)  # create a dummy env to get the spaces
         state_dim, action_dim, policy_type = env.state_dim, env.action_dim, env.policy_type
-        action_dim = action_dim * 2 if env.policy_type == PolicyType.GAUSSIAN else action_dim
+        action_dim = action_dim * 2 if (env.policy_type == PolicyType.GAUSSIAN and stochastic) else action_dim
         return state_dim, action_dim, policy_type
 
     def _get_all_components(self):
-        state_dim, action_dim, policy_type = ESTrainer._infer_policy_parameters(self.task_name)
+        state_dim, action_dim, policy_type = ESTrainer._infer_policy_parameters(self.task_name, self.stochastic)
 
         # network
         net = PolicyNet(n_input=state_dim,
