@@ -8,14 +8,14 @@ from novelty_guided_package.core_components.utility import to_device, get_equi_s
 
 
 class EpisodicReturnPolicy:
-    def __init__(self, model, config):
+    def __init__(self, model, task_name, max_episode_steps, behavior_traj_length):
         self.model = model
-        self.config = config
-        self.eval = eval
+        self.task_name = task_name
+        self.max_episode_steps = max_episode_steps
+        self.behavior_traj_length = behavior_traj_length
 
-        # dummy variables to hold current parameter name
+        # parameter name
         self.parameter_name = None
-        self.add_noise = False
 
         # Set up the model
         self.model = model
@@ -68,8 +68,8 @@ class EpisodicReturnPolicy:
                  save_loc=None):
 
         # let's create the env here
-        env = GymEnvironment(self.config["environment"]["name"],
-                             self.config["environment"]["max_episode_steps"],
+        env = GymEnvironment(self.task_name,
+                             self.max_episode_steps,
                              render,
                              save_loc)
 
@@ -111,8 +111,11 @@ class EpisodicReturnPolicy:
             trajectory.append(behavior)
 
         # get the behavior
-        behavior = np.array(trajectory)
-        behavior = get_equi_spaced_points(behavior, self.config["behavior"]["traj_length"])
+        if self.behavior_traj_length is not None:
+            behavior = np.array(trajectory)
+            behavior = get_equi_spaced_points(behavior, self.behavior_traj_length)
+        else:
+            behavior = None
 
         return episodic_return, behavior, stats
 

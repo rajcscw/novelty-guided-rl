@@ -7,7 +7,8 @@
   "model": {
     "hidden_size": 64
   },
-  "PPO": {
+  "method": {
+    "name": "rl_ppo",
     "nbatch_train": 50,
     "log_every": 50,
     "ent_coef": 0.0,

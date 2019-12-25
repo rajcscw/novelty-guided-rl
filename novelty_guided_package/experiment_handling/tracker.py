@@ -17,22 +17,17 @@ class ExperimentTracker:
     @staticmethod
     def _set_up_logger(base_folder, name):
         logger = logging.Logger(name)
-        logger.addHandler(logging.StreamHandler())
-        logger.addHandler(logging.FileHandler(os.path.join(base_folder, "console.log")))
+        #logger.addHandler(logging.StreamHandler())
+        logger.addHandler(logging.FileHandler(os.path.join(base_folder, "console.txt")))
         return logger
 
     def log(self, message):
         self.logger.log(level=logging.INFO, msg=message)
-
-    def save_model(self, model):
-        pass
 
     def save_config(self, config):
         json.dump(config, open(os.path.join(self.base_folder, "config.json"), "w"))
 
     def save_results(self, results):
         path_to_results = os.path.join(self.base_folder, "metrics.json")
-        prev_results = {} if not os.path.exists(path_to_results) else json.load(open(path_to_results))
-        prev_results.update(results)
-        json.dump(prev_results, open(path_to_results, "w"))
+        json.dump(results, open(path_to_results, "w"))
 

@@ -16,9 +16,10 @@ class AE(nn.Module):
         self.batch_size = batch_size
         self.encoder = nn.Linear(n_input, n_hidden)
         self.decoder = nn.Linear(n_hidden, n_input)
+        self.loss_criterion = torch.nn.MSELoss()
 
     def forward(self, input):
-        encoded = self.encoder(input)
+        encoded = torch.sigmoid(self.encoder(input))
 
         # apply the sparseness
         sorted_indices = torch.argsort(encoded)
@@ -29,19 +30,20 @@ class AE(nn.Module):
         output = self.decoder(encoded)
         return output
 
-    # def forward(self, input):
-    #     encoded = self.encoder(input)
-    #     output = self.decoder(encoded)
-    #     return output
-
     def train(self, inputs):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        self.zero_grad()
-        outputs = self.forward(inputs)
-        loss = AE.reconstruction_loss(inputs, outputs)
-        loss.backward()
-        optimizer.step()
-        return loss.detach().cpu().numpy()
+        current_batch_idx = 0
+        total_loss = 0
+        while current_batch_idx < inputs.shape[0]:
+            self.zero_grad()
+            batch_inputs = inputs[current_batch_idx:current_batch_idx+self.batch_size]
+            outputs = self.forward(batch_inputs)
+            loss = AE.reconstruction_loss(batch_inputs, outputs)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss
+            current_batch_idx += self.batch_size
+        return total_loss.detach().cpu().numpy() / inputs.shape[0]
 
     @staticmethod
     def reconstruction_loss(input, predicted):
@@ -50,7 +52,7 @@ class AE(nn.Module):
 
 
 class AutoEncoderBasedDetection(AbstractNoveltyDetector):
-    def __init__(self, n_input, n_hidden, lr, batch_size, device, sparsity_level, n_epochs=5):
+    def __init__(self, n_input, n_hidden, lr, batch_size, device, sparsity_level, archive_size, n_epochs):
         super().__init__()
         self.n_input = n_input
         self.n_hidden = n_hidden
@@ -59,6 +61,7 @@ class AutoEncoderBasedDetection(AbstractNoveltyDetector):
         self.device = device
         self.sparsity_level = sparsity_level
         self.n_epochs = n_epochs
+        self.archive_size = archive_size
 
         # model
         self.behavior_model = AE(n_input, n_hidden, lr, batch_size, sparsity_level)
@@ -68,7 +71,7 @@ class AutoEncoderBasedDetection(AbstractNoveltyDetector):
 
     def _add_behaviors(self, beh):
         self.behaviors.append(beh)
-        self.behaviors = self.behaviors[:100]
+        self.behaviors = self.behaviors[:self.archive_size]
 
     def save_behaviors(self, behaviors):
         # add them to the behavior list
@@ -80,14 +83,14 @@ class AutoEncoderBasedDetection(AbstractNoveltyDetector):
         behaviors = to_device(torch.Tensor(self.behaviors), self.device)
         for i in range(self.n_epochs):
             loss = self.behavior_model.train(behaviors)
-            print(f"Total loss: {loss}")
 
     def get_novelty(self, behavior):
-        behavior = behavior.reshape(1, -1)
-        behavior = to_device(torch.Tensor(behavior), self.device)
-        predicted = self.behavior_model.forward(behavior)
-        novelty = float(self.behavior_model.reconstruction_loss(behavior, predicted).data.cpu().numpy())
-        return novelty
+        with torch.no_grad():
+            behavior = behavior.reshape(1, -1)
+            behavior = to_device(torch.Tensor(behavior), self.device)
+            predicted = self.behavior_model.forward(behavior)
+            novelty = float(self.behavior_model.reconstruction_loss(behavior, predicted).data.cpu().numpy())
+            return novelty
 
     @classmethod
     def from_dict(cls, dict_config):

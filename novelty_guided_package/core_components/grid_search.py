@@ -1,44 +1,60 @@
 from itertools import product
-from copy import deepcopy
-from typing import List
+import json
 
 
-def find_lists_in_dict(obj_dict, param_grid: List) -> List:
+def get_dict_obj(keys, values):
+    dict = {}
+    for key, value in zip(keys, values):
+        dict[key] = value
+    return dict
+
+
+def find_products(splits_by_keys):
+    values = list(splits_by_keys.values())
+    keys = list(splits_by_keys.keys())
+    if len(values) == 1:
+        dict_objs = [get_dict_obj(keys, [value]) for value in values[0]]
+    else:
+        product_values = product(*values)
+        dict_objs = [get_dict_obj(keys, value) for value in product_values]
+    return dict_objs
+
+
+def split_config(obj):
     """
-    Traverses the possibly nested dictionaries and if a leaf (-> a value) is of type List,
-    then this leaf is added to the param_grid list as a sublist.
-    :param obj_dict:
-    :param param_grid:
+    Recursively splits the given object
     :return:
     """
-    for key in obj_dict:
-        if isinstance(obj_dict[key], list):
-            param_grid.append(obj_dict[key])
-        elif isinstance(obj_dict[key], dict):
-            find_lists_in_dict(obj_dict[key], param_grid)
+    if not isinstance(obj, dict):
+        return obj
+
+    # it is a dict and further split
+    splits_by_key = {}
+    for key, value in obj.items():
+        if isinstance(value, list):
+            all_splits = []
+            for item in value:
+                splits = split_config(item)
+                if isinstance(splits, list):
+                    all_splits.extend(splits)
+                else:
+                    all_splits.append(splits)
+            splits_by_key[key] = all_splits
+
+        elif isinstance(value, dict):
+            splits_by_key[key] = split_config(value)
         else:
-            continue
-    return param_grid
+            splits_by_key[key] = [value]
+
+    # here, find cartesian
+    configs = find_products(splits_by_key)
+
+    return configs
 
 
-def replace_lists_in_dict(obj, obj_copy, comb, counter):
-    for key, key_copy in zip(obj, obj_copy):
-        if isinstance(obj[key], list):
-            obj_copy[key_copy] = comb[len(counter)]
-            counter.append(1)
-        elif isinstance(obj[key], dict):
-            replace_lists_in_dict(obj[key], obj_copy[key_copy], comb, counter)
-        else:
-            continue
-    return obj_copy, counter
-
-
-def split_gs_config(config_grid_search):
-    param_grid = []
-    param_grid = find_lists_in_dict(config_grid_search, param_grid)
-    config_copy = deepcopy(config_grid_search)
-    for comb in product(*param_grid):
-        counter = []
-        individual_config = replace_lists_in_dict(config_grid_search, config_copy, comb, counter)[0]
-        individual_config = deepcopy(individual_config)
-        yield individual_config
+if __name__ == "__main__":
+    config = json.load(open("/home/rajkumar/IdeaProjects/novelty-guided-rl/scripts/experiments/configs/novelty_es.json"))
+    configs = split_config(config)
+    print(f" Total configs found: {len(configs)}")
+    for config in configs:
+        print(config)
