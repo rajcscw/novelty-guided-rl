@@ -57,7 +57,11 @@ class EpisodicReturnPolicy:
         if self.stochastic:
             n_a = int(network_output.shape[0] / 2)
             mean, sd = network_output[:n_a], network_output[n_a:]
-            sd = np.log(1 + np.exp(sd))
+            try:
+                sd = np.log(1 + np.exp(sd))
+            except:
+                sd = np.log(1)
+
             action = np.random.normal(loc=mean.reshape(-1,1), scale=sd.reshape(-1,1), size=(n_a,1))
         else:
             action = network_output

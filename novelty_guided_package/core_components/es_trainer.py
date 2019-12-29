@@ -91,7 +91,8 @@ class ESTrainer:
         objective = EpisodicReturnPolicy(model=model,
                                          task_name=self.task_name,
                                          max_episode_steps=self.max_episode_steps,
-                                         behavior_traj_length=self.behavior_traj_length)
+                                         behavior_traj_length=self.behavior_traj_length,
+                                         stochastic=self.stochastic)
 
         # estimator
         estimator = ES(parallel_workers=self.n_workers,
