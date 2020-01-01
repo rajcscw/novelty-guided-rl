@@ -8,12 +8,13 @@ from novelty_guided_package.core_components.utility import to_device, get_equi_s
 
 
 class EpisodicReturnPolicy:
-    def __init__(self, model, task_name, max_episode_steps, behavior_traj_length, stochastic):
+    def __init__(self, model, task_name, max_episode_steps, behavior_traj_length, stochastic, early_stop_reward=None):
         self.model = model
         self.task_name = task_name
         self.max_episode_steps = max_episode_steps
         self.behavior_traj_length = behavior_traj_length
         self.stochastic = stochastic
+        self.early_stop_reward = early_stop_reward
 
         # parameter name
         self.parameter_name = None
@@ -107,7 +108,7 @@ class EpisodicReturnPolicy:
             steps_taken += 1
             episodic_return += current_reward
 
-            if done:
+            if done or self._early_stop(episodic_return):
                 break
 
             # Set the next state
@@ -125,4 +126,10 @@ class EpisodicReturnPolicy:
             behavior = None
 
         return episodic_return, behavior, stats
+
+    def _early_stop(self, reward):
+        if self.early_stop_reward is not None:
+            if reward >= self.early_stop_reward:
+                return True
+        return False
 

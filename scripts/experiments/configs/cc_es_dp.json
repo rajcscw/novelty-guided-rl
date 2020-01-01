@@ -1,15 +1,16 @@
 {
   "environment": {
     "name": "InvertedDoublePendulum-v2",
-    "max_episode_steps": 10000,
-    "stochastic": false
+    "max_episode_steps": null,
+    "stochastic": false,
+    "early_stop_reward": 10000
   },
   "model": {
     "hidden_size": 64
   },
   "ES": {
-    "lr": 1e-2,
-    "sigma": 1.0
+    "lr": 1e-3,
+    "sigma": 1e-2
   },
   "method": [
     {
@@ -47,11 +48,11 @@
         },
         {
           "name": "ae",
-          "n_hidden": [50, 100],
+          "n_hidden": [50],
           "lr": 1e-3,
           "batch_size": 100,
           "sparsity_level": [
-            0.25, 0.5, 1.0
+            1.0, 0.5, 0.25
           ],
           "archive_size": 1000,
           "n_epochs": [5]

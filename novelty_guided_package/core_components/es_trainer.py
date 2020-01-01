@@ -33,6 +33,7 @@ class ESTrainer:
         self.sigma = float(self.config["ES"]["sigma"])
         self.lr = float(self.config["ES"]["lr"])
         self.stochastic = self.config["environment"]["stochastic"]
+        self.early_stop_reward = self.config["environment"].get("early_stop_reward", None)
 
         # adaptive
         self.adaptive = self.config["method"]["adaptive"]["adapt"]
@@ -92,7 +93,8 @@ class ESTrainer:
                                          task_name=self.task_name,
                                          max_episode_steps=self.max_episode_steps,
                                          behavior_traj_length=self.behavior_traj_length,
-                                         stochastic=self.stochastic)
+                                         stochastic=self.stochastic,
+                                         early_stop_reward=self.early_stop_reward)
 
         # estimator
         estimator = ES(parallel_workers=self.n_workers,
