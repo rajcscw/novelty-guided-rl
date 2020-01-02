@@ -14,17 +14,6 @@
   },
   "method": [
     {
-      "name": "rl_es",
-      "novelty_detector":
-      {
-        "name": "none"
-      },
-      "adaptive": {
-        "initial_rl_weight": 1.0,
-        "adapt": false
-      }
-    },
-    {
       "name": "novelty_guided_es",
       "behavior_traj_length": 50,
       "behavior_dim": 6,
@@ -42,13 +31,8 @@
       ],
       "novelty_detector": [
         {
-          "name": "knn",
-          "n_neighbors": 10,
-          "archive_size": 1000
-        },
-        {
           "name": "ae",
-          "n_hidden": [50],
+          "n_hidden": ["100", "100,50"],
           "lr": 1e-3,
           "batch_size": 100,
           "sparsity_level": [
