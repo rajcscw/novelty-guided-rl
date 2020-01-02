@@ -12,23 +12,49 @@ class AE(nn.Module):
         self.n_input = n_input
         self.lr = lr
         self.sparsity_level = sparsity_level
-        self.k_sparse = int(sparsity_level * n_hidden)
         self.batch_size = batch_size
-        self.encoder = nn.Linear(n_input, n_hidden)
-        self.decoder = nn.Linear(n_hidden, n_input)
+        self.encoder_layers, self.decoder_layers = self._get_layers(n_hidden)
         self.loss_criterion = torch.nn.MSELoss()
 
-    def forward(self, input):
-        encoded = torch.sigmoid(self.encoder(input))
+    def _get_layers(self, n_hidden: str):
+        # separate the layering information
+        n_hidden = n_hidden.split(",")
+        n_hidden = [int(hidden) for hidden in n_hidden]
 
+        encoder_layers = nn.ModuleList()
+        decoder_layers = nn.ModuleList()
+        
+        input_size = self.n_input
+        for output_size in n_hidden:
+            encoder_layers.append(nn.Linear(input_size, output_size))
+            decoder_layers.append(nn.Linear(output_size, input_size)) 
+            input_size = output_size
+        
+        return encoder_layers, decoder_layers
+
+    def forward(self, input):
+        # encoding
+        encoded = input
+        for layer in self.encoder_layers:
+            encoded = torch.sigmoid(layer(encoded))
+        
         # apply the sparseness
         sorted_indices = torch.argsort(encoded)
-        top_indices = sorted_indices[:,:self.k_sparse]
+        k_sparse = int(encoded.shape[1] * self.sparsity_level)
+        top_indices = sorted_indices[:,:k_sparse]
         masks = torch.zeros_like(encoded)
         masks[:,top_indices] = 1.0
         encoded = encoded * masks
-        output = self.decoder(encoded)
-        return output
+
+        # decoding
+        decoded = encoded
+        for i, layer in enumerate(reversed(self.decoder_layers)):
+            if (i + 1) != len(self.decoder_layers):
+                decoded = torch.sigmoid(layer(decoded))
+            else:
+                decoded = layer(decoded)
+
+        return decoded 
 
     def train(self, inputs):
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
