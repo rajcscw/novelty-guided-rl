@@ -32,7 +32,7 @@ class ESTrainer:
         self.n_samples = self.config["run_time"]["n_samples"]
         self.sigma = float(self.config["ES"]["sigma"])
         self.lr = float(self.config["ES"]["lr"])
-        self.stochastic = self.config["environment"]["stochastic"]
+        self.stochastic = self.config["environment"].get("stochastic", True)
         self.early_stop_reward = self.config["environment"].get("early_stop_reward", None)
 
         # adaptive
