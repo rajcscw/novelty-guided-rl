@@ -1,6 +1,6 @@
 {
   "environment": {
-    "name": "Walker2d-v2",
+    "name": "Hopper-v2",
     "max_episode_steps": null
   },
   "model": {
