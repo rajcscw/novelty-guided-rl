@@ -1,8 +1,8 @@
 {
     "environment": {
         "name": "InvertedPendulum-v2",
-        "max_episode_steps": 10000,
-        "early_stop_reward": 10000,
+        "max_episode_steps": 5000,
+        "early_stop_reward": 5000,
         "stochatic": false
     },
     "model": {
@@ -14,27 +14,10 @@
     },
     "method": [
       {
-        "name": "rl_es",
-        "novelty_detector":
-        {
-          "name": "none"
-        },
-        "adaptive": {
-          "initial_rl_weight": 1.0,
-          "adapt": false
-        }
-      },
-      {
         "name": "novelty_guided_es",
         "behavior_traj_length": 50,
         "behavior_dim": 4,
         "adaptive": [
-          {
-            "initial_rl_weight": 1.0,
-            "adapt": true,
-            "rl_weight_delta": [0.02, 0.05],
-            "t_max": [50]
-          },
           {
             "initial_rl_weight": 0.0,
             "adapt": false

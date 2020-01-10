@@ -1,8 +1,8 @@
 {
     "environment": {
         "name": "InvertedPendulum-v2",
-        "max_episode_steps": 10000,
-        "early_stop_reward": 10000,
+        "max_episode_steps": 5000,
+        "early_stop_reward": 5000,
         "stochatic": false
     },
     "model": {
@@ -34,10 +34,6 @@
             "adapt": true,
             "rl_weight_delta": [0.02, 0.05],
             "t_max": [50]
-          },
-          {
-            "initial_rl_weight": 0.0,
-            "adapt": false
           }
         ],
         "novelty_detector": [
