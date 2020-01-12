@@ -29,15 +29,9 @@
         ],
         "novelty_detector": [
           {
-            "name": "ae",
-            "n_hidden": ["100", "100,50"],
-            "lr": 1e-3,
-            "batch_size": 100,
-            "sparsity_level": [
-              0.25, 0.5, 1.0
-            ],
-            "archive_size": 1000,
-            "n_epochs": [5]
+            "name": "knn",
+            "n_neighbors": [5, 10],
+            "archive_size": [500, 1000, 200]
           }
         ]
       }
