@@ -14,7 +14,7 @@ def rolling_mean(X, window_size, pad=None):
         front = np.full((window_size,), pad).tolist()
     padded = front + X
     mean = np.convolve(padded, np.ones((window_size,))/window_size, "valid")
-    return mean
+    return mean[:len(X)].tolist()
 
 
 def plot_learning_curve(file, title, series):
