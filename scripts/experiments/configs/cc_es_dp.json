@@ -21,7 +21,7 @@
         {
           "initial_rl_weight": 1.0,
           "adapt": true,
-          "rl_weight_delta": [0.02, 0.05],
+          "rl_weight_delta": [0.05],
           "t_max": [50]
         },
         {

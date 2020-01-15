@@ -153,8 +153,8 @@ class ESTrainer:
 
         # save the final results
         self.exp_tracker.save_results({
-            "episodic_total_rewards": rolling_mean(episodic_total_reward, self.log_every).tolist(),
-            "reward_pressure": rolling_mean(reward_pressure, self.log_every).tolist()
+            "episodic_total_rewards": rolling_mean(episodic_total_reward, self.log_every),
+            "reward_pressure": rolling_mean(reward_pressure, self.log_every)
         })
 
     def run_epoch(self, model, estimator, objective, novelty_detector, novelty_adaptor):
