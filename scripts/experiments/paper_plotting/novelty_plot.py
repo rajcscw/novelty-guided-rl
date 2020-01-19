@@ -105,10 +105,10 @@ path_to_outputs = os.path.join(os.path.dirname(os.path.realpath(__file__)), "plo
 
 # tasks to analyze
 tasks = [
-    "half_cheetah",
-    "hopper",
-    "walker",
-    "inverted_pendulum",
+    #"half_cheetah",
+    #"hopper",
+    #"walker",
+    #"inverted_pendulum",
     "inverted_double_pendulum"
 ]
 
@@ -119,7 +119,7 @@ tasks_and_settings = {
     "hopper": (("100,50", "0.25"), ("100", "0.25")),
     "walker": (("100,50", "1.0"), ("100,50", "0.5")),
     "inverted_pendulum": (("100,50", "1.0"), ("50", "0.25")),
-    "inverted_double_pendulum": (("100", "0.25"), ("100", "0.25"))
+    "inverted_double_pendulum": (("100", "0.25"), ("200, 100", "1.0"))
 }
 
 # analyze and produce output for each task
