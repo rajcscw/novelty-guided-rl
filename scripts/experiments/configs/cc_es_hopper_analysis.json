@@ -1,0 +1,51 @@
+{
+    "environment": {
+      "name": "Hopper-v2",
+      "max_episode_steps": null
+    },
+    "model": {
+      "hidden_size": 64
+    },
+    "ES": {
+      "lr": 1e-2,
+      "sigma": 1e-1
+    },
+    "method": [
+      {
+        "name": "novelty_guided_es",
+        "behavior_traj_length": [50, 100, 200],
+        "behavior_dim": 2,
+        "adaptive": [
+          {
+            "initial_rl_weight": 1.0,
+            "adapt": true,
+            "rl_weight_delta": [0.05],
+            "t_max": [50]
+          },
+          {
+            "initial_rl_weight": 0.0,
+            "adapt": false
+          }
+        ],
+        "novelty_detector": [
+          {
+            "name": "ae",
+            "n_hidden": ["100,50"],
+            "lr": 1e-3,
+            "batch_size": 100,
+            "sparsity_level": [
+              1.0
+            ],
+            "archive_size": [200, 500, 1000],
+            "n_epochs": [5]
+          },
+          {
+            "name": "knn",
+            "n_neighbors": [10],
+            "archive_size": [200, 500, 1000]
+          }
+        ]
+      }
+    ]
+  }
+  
