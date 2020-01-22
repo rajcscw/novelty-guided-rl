@@ -13,7 +13,7 @@
     "method": [
       {
         "name": "novelty_guided_es",
-        "behavior_traj_length": [50, 100, 200],
+        "behavior_traj_length": [50],
         "behavior_dim": 2,
         "adaptive": [
           {
