@@ -86,8 +86,11 @@ def plot_df(file_name, results_df, style, pal):
                  err_style="band", 
                  palette=pal,
                  )
-    plt.ylabel("Episodic Total Reward", fontsize=10)
-    plt.xlabel("Steps", fontsize=10)
+    plt.ylabel("Episodic Total Reward", fontsize=20)
+    plt.xlabel("Steps", fontsize=20)
+
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=15)
 
     labels = list(results_df["strategy"].unique())
     legend = []
@@ -95,7 +98,8 @@ def plot_df(file_name, results_df, style, pal):
         if style_ in labels:
             legend.append(style_)
 
-    plt.legend(loc=4, fontsize=10, labels=legend)
+    plt.legend(loc=4, fontsize=15, labels=legend)
+    plt.tight_layout()
     plt.savefig(file_name)
     plt.close()
 
@@ -105,10 +109,10 @@ path_to_outputs = os.path.join(os.path.dirname(os.path.realpath(__file__)), "plo
 
 # tasks to analyze
 tasks = [
-    #"half_cheetah",
-    #"hopper",
-    #"walker",
-    #"inverted_pendulum",
+    "half_cheetah",
+    "hopper",
+    "walker",
+    "inverted_pendulum",
     "inverted_double_pendulum"
 ]
 

@@ -1,0 +1,10 @@
+Processed Iteration 50,episodic return 18.12, reward_pressure: 1.0
+Processed Iteration 100,episodic return 63.6, reward_pressure: 1.0
+Processed Iteration 150,episodic return 232.26, reward_pressure: 1.0
+Processed Iteration 200,episodic return 1494.26, reward_pressure: 1.0
+Processed Iteration 250,episodic return 5000.0, reward_pressure: 0.9967999999999995
+Processed Iteration 300,episodic return 5000.0, reward_pressure: 0.9767999999999998
+Processed Iteration 350,episodic return 5000.0, reward_pressure: 0.9568000000000002
+Processed Iteration 400,episodic return 5000.0, reward_pressure: 0.9368000000000002
+Processed Iteration 450,episodic return 5000.0, reward_pressure: 0.9168000000000005
+Processed Iteration 500,episodic return 5000.0, reward_pressure: 0.8967999999999998

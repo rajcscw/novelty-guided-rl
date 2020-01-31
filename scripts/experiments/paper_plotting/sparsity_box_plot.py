@@ -22,7 +22,7 @@ def extract_params(group_name):
     return hidden, sparsity_level, novelty, adapt, rl_weight_delta
 
 
-def to_pands_df(results: Dict[str, List]) -> pd.DataFrame:
+def to_pands_df(results: Dict[str, List], chosen_layer_config) -> pd.DataFrame:
     novelty_combined_df = pd.DataFrame()
     adaptive_combined_df = pd.DataFrame()
     for group_name, group_data in results.items():    
@@ -30,6 +30,9 @@ def to_pands_df(results: Dict[str, List]) -> pd.DataFrame:
             
             # extract config from group name
             hidden, sparsity_level, novelty_or_adaptive, adapt_or_not, rl_weight_delta = extract_params(group_name)
+
+            if hidden not in chosen_layer_config:
+                continue
 
             df = pd.DataFrame()
             df["epoch"] = np.arange(1)
@@ -53,9 +56,13 @@ def plot_df( file_name: str, df: pd.DataFrame, x: str, y: str, palette: str, hue
     fig = plt.figure()
     sns.set(style="darkgrid")
     sns.set_context("paper")
-    sns.boxplot(x=x, y=y, palette=palette,data=df, hue=hue, hue_order=["0.25", "0.5", "1.0"])
-    plt.ylabel(y, fontsize=13)
-    plt.xlabel(x, fontsize=13)
+    sns.boxplot(x=x, y=y, palette=palette,data=df, hue=hue, hue_order=["0.25", "0.5", "1.0"], width=0.3, linewidth=2.5)
+    plt.ylabel(y, fontsize=20)
+    plt.xlabel(x, fontsize=20)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.legend(fontsize=15)
+    plt.tight_layout()
     plt.savefig(file_name)
     plt.close()
 
@@ -80,7 +87,7 @@ for task in tqdm(tasks):
     results = json.load(open(result_file)) 
 
     # to a dataframe
-    novelty_results_df, adaptive_results = to_pands_df(results)
+    novelty_results_df, adaptive_results = to_pands_df(results, chosen_layer_config=["100", "50"])
 
     plot_df(f"{path_to_outputs}/{task}_sparsity_novelty.pdf", novelty_results_df, "Layer Configuration", "Total Reward", sns.color_palette("Blues", n_colors=3), "Sparsity Level")
     plot_df(f"{path_to_outputs}/{task}_sparsity_adaptive.pdf", adaptive_results, "Layer Configuration", "Total Reward", sns.color_palette("Blues", n_colors=3), "Sparsity Level")
