@@ -39,7 +39,7 @@ class AE(nn.Module):
             encoded = torch.sigmoid(layer(encoded))
         
         # apply the sparseness
-        sorted_indices = torch.argsort(encoded)
+        sorted_indices = torch.argsort(encoded, descending=True)
         k_sparse = int(encoded.shape[1] * self.sparsity_level)
         top_indices = sorted_indices[:,:k_sparse]
         masks = torch.zeros_like(encoded)
