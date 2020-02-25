@@ -35,7 +35,7 @@ for i in tqdm(range(max_iters)):
     # reconstrcuted
     random_idx = np.random.choice(range(n_samples))
     random_sequence = all_sequences[random_idx]
-    reconstructed, _ = autoencoder.forward([random_sequence])
+    reconstructed, _, _ = autoencoder.forward([random_sequence])
 
     if (i+1) % 20 == 0:
         print("Iter: {} and Running Loss: {}".format(i+1, running_loss))

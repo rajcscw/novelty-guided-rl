@@ -3,7 +3,8 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from novelty_guided_package.core_components.utility import to_device
 import torch
-from typing import List
+from typing import List, Tuple
+import numpy as np
 
 class SeqEncoder(nn.Module):
     """
@@ -118,7 +119,15 @@ class SeqAE(nn.Module):
         sequences = torch.cat(sequences, dim=0)
         return sequences, original_seq_lengths
 
-    def forward(self, sequences: List[torch.Tensor]):
+    def forward(self, sequences: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor, List[np.ndarray]]:
+        """Forward operation
+        
+        Arguments:
+            sequences {List[torch.Tensor]} -- a list of sequences each in the shape [seq_len x dim]
+        
+        Returns:
+            Tuple[List[torch.Tensor], torch.Tensor, List[np.ndarray]] -- returns a tuple of reconstructed sequences, loss_batch, losses 
+        """
         
         # prepare the sequences
         sequences, original_seq_lengths = self._prepare_sequences(sequences)
@@ -145,6 +154,7 @@ class SeqAE(nn.Module):
         # compute loss for sequences
         loss_batch = 0
         reconstructed_sequences_as_list = []
+        loss_per_sequences = []
         for i in range(current_batch_size):
             # for considering variable length sequences
             # now, we consider only clipped versions of it
@@ -158,10 +168,11 @@ class SeqAE(nn.Module):
             reconstructed = reconstructed_sequences[i, :, :][:seq_length]
             reconstructed_sequences_as_list.append(reconstructed.detach().numpy().reshape((-1, self.n_input))) 
             loss = self.loss_fn(reconstructed, original) / seq_length # divide by seq length
+            loss_per_sequences.append(loss.detach().numpy())
             loss_batch += loss
         loss_batch = loss_batch / current_batch_size # divide by batch size
 
-        return reconstructed_sequences_as_list, loss_batch
+        return reconstructed_sequences_as_list, loss_batch, loss_per_sequences
 
     def train(self, inputs: List[torch.tensor]):
         n_samples = len(inputs)
@@ -174,7 +185,7 @@ class SeqAE(nn.Module):
 
             # forward the sequence
             sequences = inputs[current_batch_idx:current_batch_idx+self.batch_size]
-            reconstructed, loss = self.forward(sequences)
+            reconstructed, loss, _ = self.forward(sequences)
             
             # add it to the loss batch
             total_loss += loss
@@ -188,7 +199,6 @@ class SeqAE(nn.Module):
             current_batch_idx += self.batch_size
 
         return total_loss.data.numpy()
-
 
 class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
     def __init__(self, n_input, n_hidden, n_layers, lr, device, sparsity_level, archive_size, n_epochs):
