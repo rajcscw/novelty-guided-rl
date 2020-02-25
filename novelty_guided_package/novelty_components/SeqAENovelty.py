@@ -103,7 +103,7 @@ class SeqAE(nn.Module):
         to_pad_len = to_length - sequence.shape[0]
         if to_pad_len > 0:
             pad = torch.zeros((to_length - sequence.shape[0], sequence.shape[1]))
-            padded_sequence = torch.cat([sequence, pad], dim=1)
+            padded_sequence = torch.cat([sequence, pad], dim=0)
             padded_sequence = padded_sequence.reshape((1, to_length, -1))
             return padded_sequence
         else:
@@ -114,48 +114,52 @@ class SeqAE(nn.Module):
         # pad the sequences to be of the same length
         original_seq_lengths = [sequence.shape[0] for sequence in sequences]
         max_length = max(original_seq_lengths)
-        sequences = [SeqAE._pad_sequence(sequence, max_length) for sequence in sequences]
+        sequences = [SeqAE._pad_sequence(sequence.type(torch.float32), max_length) for sequence in sequences]
         sequences = torch.cat(sequences, dim=0)
-        sequences = sequences.type(torch.float32)
         return sequences, original_seq_lengths
 
     def forward(self, sequences: List[torch.Tensor]):
         
-        # prepare the sequence
+        # prepare the sequences
         sequences, original_seq_lengths = self._prepare_sequences(sequences)
         max_length = max(original_seq_lengths)
 
-        # initialize the hidden state of the encoder network
+        # encode
         encoder_hidden = self.encoder.init_hidden(batch_size=sequences.shape[0])
-
-        # feed it in into the encoder network
         encoder_output, encoder_hidden = self.encoder.forward(sequences, encoder_hidden)
 
-        # initialize the inputs for decoder input
+        # decode
         decoder_hidden = encoder_hidden
         decoder_output = torch.zeros((sequences.shape[0], 1, self.n_input))
 
         loss_batch = 0
         current_batch_size = decoder_output.shape[0]
         reconstructed_sequences = torch.zeros((current_batch_size, max_length, self.n_input))
+        original_sequences = torch.zeros((current_batch_size, max_length, self.n_input))
         for i in range(max_length):
             t = max_length - 1 - i
             decoder_output, decoder_hidden = self.decoder.forward(decoder_output, decoder_hidden)
             reconstructed_sequences[:,i,:] = decoder_output[:, 0, :]
+            original_sequences[:,i,:] = sequences[:,t, :] # in reversed order
 
-            # TBD: handle variable length by masking
-
-            # compute loss here
-            reconstructed = decoder_output.reshape((current_batch_size, -1))
-            original = sequences[:, t, :]
-            loss = self.loss_fn(reconstructed, original)
-            loss_batch += loss / current_batch_size
-        
+        # compute loss for sequences
+        loss_batch = 0
         reconstructed_sequences_as_list = []
         for i in range(current_batch_size):
-            original_length = original_seq_lengths[i]
-            reconstructed = reconstructed_sequences[i, :original_length].detach().numpy().reshape((-1, self.n_input))
-            reconstructed_sequences_as_list.append(reconstructed)
+            # for considering variable length sequences
+            # now, we consider only clipped versions of it
+            seq_length = original_seq_lengths[i]
+
+            # the original sequence which is now in reversed order, the first few elements could be the padded ones 
+            # so the last seq length elements are chosen
+            original = original_sequences[i, :, :][max_length-seq_length:]
+
+            # reconstructed must consider only the first seq length elements
+            reconstructed = reconstructed_sequences[i, :, :][:seq_length]
+            reconstructed_sequences_as_list.append(reconstructed.detach().numpy().reshape((-1, self.n_input))) 
+            loss = self.loss_fn(reconstructed, original) / seq_length # divide by seq length
+            loss_batch += loss
+        loss_batch = loss_batch / current_batch_size # divide by batch size
 
         return reconstructed_sequences_as_list, loss_batch
 
