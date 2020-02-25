@@ -76,12 +76,13 @@ class SeqDecoder(nn.Module):
         return output, hidden
 
 class SeqAE(nn.Module):
-    def __init__(self, n_input, n_hidden, n_layers, lr, sparsity_level, weight_decay, device):
+    def __init__(self, n_input, n_hidden, n_layers, lr, batch_size, sparsity_level, weight_decay, device):
         super().__init__()
         self.n_hidden = n_hidden
         self.n_layers = n_layers
         self.n_input = n_input
         self.lr = lr
+        self.batch_size = batch_size
         self.sparsity_level = sparsity_level
         self.weight_decay = weight_decay
         self.device = device
@@ -97,66 +98,92 @@ class SeqAE(nn.Module):
         # loss function
         self.loss_fn = nn.MSELoss()
 
-    def _prepare_sequence(self, sequence: torch.Tensor) -> torch.Tensor:
-        sequence = sequence.type(torch.float32)
-        sequence = sequence.view(1, sequence.shape[0], self.n_input)
-        return sequence
+    @staticmethod
+    def _pad_sequence(sequence: torch.Tensor, to_length: int):
+        to_pad_len = to_length - sequence.shape[0]
+        if to_pad_len > 0:
+            pad = torch.zeros((to_length - sequence.shape[0], sequence.shape[1]))
+            padded_sequence = torch.cat([sequence, pad], dim=1)
+            padded_sequence = padded_sequence.reshape((1, to_length, -1))
+            return padded_sequence
+        else:
+            padded_sequence = sequence.reshape((1, to_length, -1))
+            return padded_sequence
 
-    def forward(self, sequence: torch.Tensor):
+    def _prepare_sequences(self, sequences: List[torch.Tensor]) -> torch.Tensor:
+        # pad the sequences to be of the same length
+        original_seq_lengths = [sequence.shape[0] for sequence in sequences]
+        max_length = max(original_seq_lengths)
+        sequences = [SeqAE._pad_sequence(sequence, max_length) for sequence in sequences]
+        sequences = torch.cat(sequences, dim=0)
+        sequences = sequences.type(torch.float32)
+        return sequences, original_seq_lengths
+
+    def forward(self, sequences: List[torch.Tensor]):
         
         # prepare the sequence
-        sequence = self._prepare_sequence(sequence)
-
-        # get the length of the sequence
-        seq_length = sequence.shape[1]
+        sequences, original_seq_lengths = self._prepare_sequences(sequences)
+        max_length = max(original_seq_lengths)
 
         # initialize the hidden state of the encoder network
-        encoder_hidden = self.encoder.init_hidden(batch_size=1)
+        encoder_hidden = self.encoder.init_hidden(batch_size=sequences.shape[0])
 
         # feed it in into the encoder network
-        encoder_output, encoder_hidden = self.encoder.forward(sequence, encoder_hidden)
+        encoder_output, encoder_hidden = self.encoder.forward(sequences, encoder_hidden)
 
         # initialize the inputs for decoder input
         decoder_hidden = encoder_hidden
-        decoder_output = sequence[0, seq_length-1].reshape(1, 1, -1)
+        decoder_output = torch.zeros((sequences.shape[0], 1, self.n_input))
 
-        loss = 0
-        reconstructed = []
-        for i in range(seq_length-1):
+        loss_batch = 0
+        current_batch_size = decoder_output.shape[0]
+        reconstructed_sequences = torch.zeros((current_batch_size, max_length, self.n_input))
+        for i in range(max_length):
+            t = max_length - 1 - i
             decoder_output, decoder_hidden = self.decoder.forward(decoder_output, decoder_hidden)
-            reconstructed.append(decoder_output.data.numpy())
-            loss += self.loss_fn(decoder_output, sequence[0, seq_length -2- i].reshape(decoder_output.shape))
+            reconstructed_sequences[:,i,:] = decoder_output[:, 0, :]
 
-        # average over sequences
-        loss = loss / seq_length
+            # TBD: handle variable length by masking
 
-        return reconstructed, loss
+            # compute loss here
+            reconstructed = decoder_output.reshape((current_batch_size, -1))
+            original = sequences[:, t, :]
+            loss = self.loss_fn(reconstructed, original)
+            loss_batch += loss / current_batch_size
+        
+        reconstructed_sequences_as_list = []
+        for i in range(current_batch_size):
+            original_length = original_seq_lengths[i]
+            reconstructed = reconstructed_sequences[i, :original_length].detach().numpy().reshape((-1, self.n_input))
+            reconstructed_sequences_as_list.append(reconstructed)
+
+        return reconstructed_sequences_as_list, loss_batch
 
     def train(self, inputs: List[torch.tensor]):
         n_samples = len(inputs)
-        loss_batch = 0
-        for sequence in inputs:
-
+        current_batch_idx = 0
+        total_loss = 0
+        while current_batch_idx < n_samples:
             # reset optimizers
             self.encoder_optimizer.zero_grad()
             self.decoder_optimier.zero_grad()
 
             # forward the sequence
-            reconstructed, loss = self.forward(sequence)
+            sequences = inputs[current_batch_idx:current_batch_idx+self.batch_size]
+            reconstructed, loss = self.forward(sequences)
             
             # add it to the loss batch
-            loss_batch += loss
+            total_loss += loss
 
-        # average it
-        if n_samples > 0:
-            loss_batch = loss_batch / n_samples
+            # back prop
+            loss.backward()
+            self.encoder_optimizer.step()
+            self.decoder_optimier.step()
 
-        # back prop
-        loss_batch.backward()
-        self.encoder_optimizer.step()
-        self.decoder_optimier.step()
+            # next batch
+            current_batch_idx += self.batch_size
 
-        return loss_batch.data.numpy()
+        return total_loss.data.numpy()
 
 
 class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
