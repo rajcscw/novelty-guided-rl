@@ -8,10 +8,11 @@ from novelty_guided_package.core_components.utility import to_device, get_fixed_
 
 
 class EpisodicReturnPolicy:
-    def __init__(self, model, task_name, max_episode_steps, behavior_traj_length, behavior_sampling_rate, stochastic, early_stop_reward=None):
+    def __init__(self, model, task_name, max_episode_steps, behavior_variable, behavior_traj_length, behavior_sampling_rate, stochastic, early_stop_reward=None):
         self.model = model
         self.task_name = task_name
         self.max_episode_steps = max_episode_steps
+        self.behavior_variable = behavior_variable
         self.behavior_traj_length = behavior_traj_length
         self.behavior_sampling_rate = behavior_sampling_rate
         self.stochastic = stochastic
@@ -120,10 +121,10 @@ class EpisodicReturnPolicy:
             trajectory.append(behavior)
 
         # get the behavior
-        if self.behavior_traj_length is not None:
+        if not self.behavior_variable and self.behavior_traj_length is not None:
             behavior = np.array(trajectory)
             behavior = get_fixed_length_sequences(behavior, self.behavior_traj_length)
-        elif self.behavior_sampling_rate is not None:
+        elif self.behavior_variable and self.behavior_sampling_rate is not None:
             behavior = np.array(trajectory)
             behavior = get_variable_length_sequences(behavior, self.behavior_sampling_rate)
 
