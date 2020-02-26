@@ -45,7 +45,7 @@ def init_multiproc():
         pass
 
 
-def get_equi_spaced_points(seq, to_len):
+def get_fixed_length_sequences(seq, to_len):
     seq_len = seq.shape[0]
 
     if seq_len == 0:
@@ -63,3 +63,8 @@ def get_equi_spaced_points(seq, to_len):
     assert spaced_indices.shape[0] == to_len
     sampled = seq[spaced_indices]
     return sampled
+
+def get_variable_length_sequences(seq, sample_every):
+    sampled_indices = np.arange(0, seq.shape[0], sample_every)
+    sampled_sequence = seq[sampled_indices]
+    return sampled_sequence
