@@ -77,7 +77,7 @@ class SeqDecoder(nn.Module):
         return output, hidden
 
 class SeqAE(nn.Module):
-    def __init__(self, n_input, n_hidden, n_layers, lr, batch_size, sparsity_level, weight_decay, device):
+    def __init__(self, n_input, n_hidden, n_layers, lr, batch_size, sparsity_level, device):
         super().__init__()
         self.n_hidden = n_hidden
         self.n_layers = n_layers
@@ -85,7 +85,6 @@ class SeqAE(nn.Module):
         self.lr = lr
         self.batch_size = batch_size
         self.sparsity_level = sparsity_level
-        self.weight_decay = weight_decay
         self.device = device
         
         # set up encoder and decoder modules
@@ -93,8 +92,8 @@ class SeqAE(nn.Module):
         self.decoder = SeqDecoder(n_hidden, n_input, n_layers, device)
         
         # optimizers
-        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters(), lr=lr, weight_decay=self.weight_decay)
-        self.decoder_optimier = torch.optim.Adam(self.decoder.parameters(), lr=lr, weight_decay=self.weight_decay)
+        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters(), lr=lr)
+        self.decoder_optimier = torch.optim.Adam(self.decoder.parameters(), lr=lr)
 
         # loss function
         self.loss_fn = nn.MSELoss()
@@ -201,19 +200,20 @@ class SeqAE(nn.Module):
         return total_loss.data.numpy()
 
 class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
-    def __init__(self, n_input, n_hidden, n_layers, lr, device, sparsity_level, archive_size, n_epochs):
+    def __init__(self, n_input, n_hidden, n_layers, lr, batch_size, device, sparsity_level, archive_size, n_epochs):
         super().__init__()
         self.n_input = n_input
         self.n_hidden = n_hidden
         self.n_layers = n_layers
         self.lr = lr
+        self.batch_size = batch_size
         self.device = device
         self.sparsity_level = sparsity_level
         self.n_epochs = n_epochs
         self.archive_size = archive_size
 
         # model
-        self.behavior_model = SeqAE(n_input, n_hidden, n_layers, lr, sparsity_level, device)
+        self.behavior_model = SeqAE(n_input, n_hidden, n_layers, lr, batch_size, sparsity_level, device)
 
         # set of behaviors (archive set)
         self.behaviors = []
@@ -235,10 +235,10 @@ class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
 
     def get_novelty(self, behavior):
         with torch.no_grad():
-            behavior = behavior.reshape(1, -1)
+            behavior = behavior.reshape(-1, self.n_input)
             behavior = to_device(torch.Tensor(behavior), self.device)
-            predicted = self.behavior_model.forward(behavior)
-            novelty = float(self.behavior_model.reconstruction_loss(behavior, predicted).data.cpu().numpy())
+            predicted, _, loss = self.behavior_model.forward([behavior])
+            novelty = float(loss[0])
             return novelty
 
     @classmethod
