@@ -202,9 +202,9 @@ class SeqAE(nn.Module):
 class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
     def __init__(self, n_input, n_hidden, n_layers, lr, batch_size, device, sparsity_level, archive_size, n_epochs):
         super().__init__()
-        self.n_input = n_input
-        self.n_hidden = n_hidden
-        self.n_layers = n_layers
+        self.n_input = int(n_input)
+        self.n_hidden = int(n_hidden)
+        self.n_layers = int(n_layers)
         self.lr = lr
         self.batch_size = batch_size
         self.device = device
@@ -213,7 +213,7 @@ class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
         self.archive_size = archive_size
 
         # model
-        self.behavior_model = SeqAE(n_input, n_hidden, n_layers, lr, batch_size, sparsity_level, device)
+        self.behavior_model = SeqAE(self.n_input, self.n_hidden, self.n_layers, lr, batch_size, sparsity_level, device)
 
         # set of behaviors (archive set)
         self.behaviors = []
@@ -225,13 +225,12 @@ class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
     def save_behaviors(self, behaviors):
         # add them to the behavior list
         for beh in behaviors:
-            self._add_behaviors(beh.flatten())
+            self._add_behaviors(torch.tensor(beh))
 
     def step(self):
         # we fit the auto-encoder here
-        behaviors = to_device(torch.Tensor(self.behaviors), self.device)
         for i in range(self.n_epochs):
-            loss = self.behavior_model.train(behaviors)
+            loss = self.behavior_model.train(self.behaviors)
 
     def get_novelty(self, behavior):
         with torch.no_grad():
@@ -240,6 +239,13 @@ class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
             predicted, _, loss = self.behavior_model.forward([behavior])
             novelty = float(loss[0])
             return novelty
+
+    def get_novelties(self, behaviors: List):
+        with torch.no_grad():
+            behaviors = [torch.tensor(behavior) for behavior in behaviors]
+            predicted, _, losses = self.behavior_model.forward(behaviors)
+            novelties = [float(loss) for loss in losses]
+            return novelties
 
     @classmethod
     def from_dict(cls, dict_config):

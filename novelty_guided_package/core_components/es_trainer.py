@@ -4,6 +4,7 @@ from novelty_guided_package.core_components.estimators import ES
 from novelty_guided_package.core_components.objective import EpisodicReturnPolicy
 from novelty_guided_package.novelty_components.KNNNovelty import NearestNeighborDetection as KNNModel
 from novelty_guided_package.novelty_components.AENovelty import AutoEncoderBasedDetection as AEModel
+from novelty_guided_package.novelty_components.SeqAENovelty import SequentialAutoEncoderBasedDetection as SeqAEModel
 from novelty_guided_package.novelty_components.adaptor import NoveltyAdaptor
 from novelty_guided_package.core_components.networks import PolicyNet
 from novelty_guided_package.environments.gym_wrappers import GymEnvironment
@@ -63,6 +64,12 @@ class ESTrainer:
                                       self.behavior_dim})
             config.update({"device": self.device_list[0]})  # TBD
             return AEModel.from_dict(config)
+        elif self.novelty_detector_name == "seq_ae":
+            config = self.novelty_detector_config.copy()
+            del config["name"]
+            config.update({"n_input": self.behavior_dim})
+            config.update({"device": self.device_list[0]})
+            return SeqAEModel.from_dict(config)
         else:
             return None
 
@@ -130,7 +137,7 @@ class ESTrainer:
         reward_pressure = []
         running_total_reward = 0
         running_reward_pressure = 0.0
-        for i in range(self.max_iter):
+        for i in tqdm(range(self.max_iter)):
             total_reward = self.run_epoch(model, estimator, objective, novelty_detector, nov_adaptor)
             running_total_reward += total_reward
             running_reward_pressure += estimator.rl_weight

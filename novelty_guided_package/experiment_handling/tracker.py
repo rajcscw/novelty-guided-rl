@@ -17,7 +17,7 @@ class ExperimentTracker:
     @staticmethod
     def _set_up_logger(base_folder, name):
         logger = logging.Logger(name)
-        #logger.addHandler(logging.StreamHandler())
+        logger.addHandler(logging.StreamHandler())
         logger.addHandler(logging.FileHandler(os.path.join(base_folder, "console.txt")))
         return logger
 

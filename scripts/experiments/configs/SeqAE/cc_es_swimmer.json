@@ -17,12 +17,6 @@
       "behavior_dim": 2,
       "adaptive": [
         {
-          "initial_rl_weight": 1.0,
-          "adapt": true,
-          "rl_weight_delta": [0.02, 0.05],
-          "t_max": [50]
-        },
-        {
           "initial_rl_weight": 0.0,
           "adapt": false
         }
@@ -31,14 +25,14 @@
         {
           "name": "seq_ae",
           "n_hidden": ["100"],
-          "n_layer": [1, 2],
+          "n_layers": [1],
           "lr": 1e-2,
           "batch_size": 100,
           "sparsity_level": [
-            0.25, 0.5, 1.0
+            1.0
           ],
           "archive_size": 1000,
-          "n_epochs": [5]
+          "n_epochs": [1]
         }
       ]
     }
