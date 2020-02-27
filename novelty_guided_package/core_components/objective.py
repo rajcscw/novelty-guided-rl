@@ -127,7 +127,6 @@ class EpisodicReturnPolicy:
         elif self.behavior_variable and self.behavior_sampling_rate is not None:
             behavior = np.array(trajectory)
             behavior = get_variable_length_sequences(behavior, self.behavior_sampling_rate)
-
         return episodic_return, behavior, stats
 
     def _early_stop(self, reward):
