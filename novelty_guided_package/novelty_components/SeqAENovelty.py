@@ -57,9 +57,12 @@ class SeqEncoder(nn.Module):
         sorted_indices = torch.argsort(inner_most_layer, descending=True)
         k_sparse = int(inner_most_layer.shape[1] * self.sparsity_level)
         non_top_indices = sorted_indices[:,k_sparse:]
-        non_top_indices = SeqEncoder._get_index_array(non_top_indices)
         masks = torch.ones_like(encoded)
-        masks[self.n_layers-1, non_top_indices[0], non_top_indices[1]] = 0.0
+
+        if non_top_indices.shape[1] > 0:
+            non_top_indices = SeqEncoder._get_index_array(non_top_indices)
+            masks[self.n_layers-1, non_top_indices[0], non_top_indices[1]] = 0.0
+        
         encoded = encoded * masks
         return encoded
 
