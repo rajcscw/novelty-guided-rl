@@ -21,7 +21,7 @@ for index, length in zip(indices, lengths):
 
 # novelty detection module (auto-encoder basically here)
 batch_size = 100
-autoencoder = SeqAE(n_input=1, n_hidden=50, n_layers=2, lr=1e-2, batch_size=batch_size, sparsity_level=1.0, device="cpu")
+autoencoder = SeqAE(n_input=1, n_hidden=50, n_layers=2, lr=1e-2, batch_size=batch_size, sparsity_level=0.7, device="cpu")
 
 # run for many iterations
 loss_list = []

@@ -32,6 +32,15 @@ class AE(nn.Module):
         
         return encoder_layers, decoder_layers
 
+    def get_index_array(self, indices: torch.Tensor):
+        ix_indices_1 = []
+        ix_indices_2 = []
+        for ix_1 in range(indices.shape[0]):
+            for ix_2 in indices[ix_1]:
+                ix_indices_1.append(ix_1)
+                ix_indices_2.append(int(ix_2))
+        return torch.tensor(ix_indices_1), torch.tensor(ix_indices_2)
+
     def forward(self, input):
         # encoding
         encoded = input
@@ -42,8 +51,9 @@ class AE(nn.Module):
         sorted_indices = torch.argsort(encoded, descending=True)
         k_sparse = int(encoded.shape[1] * self.sparsity_level)
         top_indices = sorted_indices[:,:k_sparse]
+        top_indices = self.get_index_array(top_indices)
         masks = torch.zeros_like(encoded)
-        masks[:,top_indices] = 1.0
+        masks[top_indices] = 1.0
         encoded = encoded * masks
 
         # decoding

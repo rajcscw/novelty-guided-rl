@@ -34,11 +34,21 @@ class SeqEncoder(nn.Module):
         hidden = self._apply_sparsity(hidden)
         return output, hidden
 
+    @staticmethod
+    def _get_index_array(indices: torch.Tensor):
+        ix_indices_1 = []
+        ix_indices_2 = []
+        for ix_1 in range(indices.shape[0]):
+            for ix_2 in indices[ix_1]:
+                ix_indices_1.append(ix_1)
+                ix_indices_2.append(int(ix_2))
+        return torch.tensor(ix_indices_1), torch.tensor(ix_indices_2)
+
     def _apply_sparsity(self, encoded: torch.Tensor) -> torch.Tensor:
         """Applies sparsity to the inner layer of hidden representation
         
         Arguments:
-            encoded {torch.Tensor} -- hidden vector of RNN with shape (n_layers x batch_size x n_input)
+            encoded {torch.Tensor} -- hidden vector of RNN with shape (n_layers x batch_size x n_hidden)
 
         Returns:
             torch.Tensor -- returns output and hidden representation of RNN
@@ -48,7 +58,11 @@ class SeqEncoder(nn.Module):
         k_sparse = int(inner_most_layer.shape[1] * self.sparsity_level)
         non_top_indices = sorted_indices[:,k_sparse:]
         masks = torch.ones_like(encoded)
-        masks[self.n_layers-1, :, non_top_indices] = 0.0
+
+        if non_top_indices.shape[1] > 0:
+            non_top_indices = SeqEncoder._get_index_array(non_top_indices)
+            masks[self.n_layers-1, non_top_indices[0], non_top_indices[1]] = 0.0
+        
         encoded = encoded * masks
         return encoded
 
