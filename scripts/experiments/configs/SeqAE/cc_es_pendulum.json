@@ -27,7 +27,7 @@
       {
         "name": "novelty_guided_es",
         "behavior_traj_length": 50,
-        "behavior_sampling_rate": 40,
+        "behavior_sampling_rate": 10,
         "behavior_variable": [true],
         "behavior_dim": 4,
         "adaptive": [
