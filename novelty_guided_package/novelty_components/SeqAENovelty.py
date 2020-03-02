@@ -199,19 +199,20 @@ class SeqAE(nn.Module):
             # forward the sequence
             sequences = inputs[current_batch_idx:current_batch_idx+self.batch_size]
             reconstructed, loss, _ = self.forward(sequences)
-            
-            # add it to the loss batch
-            total_loss += loss
+        
 
             # back prop
             loss.backward()
             self.encoder_optimizer.step()
             self.decoder_optimier.step()
 
+            # add it to the loss batch
+            total_loss += loss.item()
+
             # next batch
             current_batch_idx += self.batch_size
 
-        return total_loss.data.numpy()
+        return total_loss
 
 class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
     def __init__(self, n_input, n_hidden, n_layers, lr, batch_size, device, sparsity_level, archive_size, n_epochs):
@@ -258,7 +259,7 @@ class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
         with torch.no_grad():
             behaviors = [torch.tensor(behavior) for behavior in behaviors]
             predicted, _, losses = self.behavior_model.forward(behaviors)
-            novelties = [float(loss) for loss in losses]
+            novelties = [float(loss.item()) for loss in losses]
             return novelties
 
     @classmethod
