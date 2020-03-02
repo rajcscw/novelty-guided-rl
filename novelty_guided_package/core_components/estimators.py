@@ -52,15 +52,15 @@ class ES:
         # for the novelty, let's just do batching
         # only implemented for seq_ae
         # TBD: fix other novelty detection modules
-        # if self.novelty_detector is not None:
-        #     behs = [beh for _,beh,_ in obj_values]
-        #     novelties = self.novelty_detector.get_novelties(behs)
+        if self.novelty_detector is not None:
+            behs = [beh for _,beh,_ in obj_values]
+            novelties = self.novelty_detector.get_novelties(behs)
 
         for i in range(len(obj_values)):
             # let's just get the novelty values corresponding to the behavior values
             obj, beh, delta = obj_values[i]
             if self.novelty_detector is not None:
-                nov = self.novelty_detector.get_novelty(beh)
+                nov = novelties[i]
 
                 # fit the model with new observed behavoirs
                 self.novelty_detector.save_behaviors([beh])
