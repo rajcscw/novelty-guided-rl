@@ -252,7 +252,7 @@ class SequentialAutoEncoderBasedDetection(AbstractNoveltyDetector):
             behavior = behavior.reshape(-1, self.n_input)
             behavior = to_device(torch.Tensor(behavior), self.device)
             predicted, _, loss = self.behavior_model.forward([behavior])
-            novelty = float(loss[0])
+            novelty = float(loss[0].item())
             return novelty
 
     def get_novelties(self, behaviors: List):
