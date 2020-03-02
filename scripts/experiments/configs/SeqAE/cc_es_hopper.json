@@ -33,7 +33,7 @@
         {
           "name": "seq_ae",
           "n_hidden": ["100"],
-          "n_layers": [1,2],
+          "n_layers": [1, 2],
           "lr": 1e-3,
           "batch_size": 100,
           "sparsity_level": [

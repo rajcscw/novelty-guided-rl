@@ -1,7 +1,9 @@
 {
     "environment": {
-      "name": "HalfCheetah-v2",
-      "max_episode_steps": null
+        "name": "InvertedPendulum-v2",
+        "max_episode_steps": 10000,
+        "early_stop_reward": 10000,
+        "stochatic": false
     },
     "model": {
       "hidden_size": 64
@@ -12,11 +14,22 @@
     },
     "method": [
       {
+        "name": "rl_es",
+        "novelty_detector":
+        {
+          "name": "none"
+        },
+        "adaptive": {
+          "initial_rl_weight": 1.0,
+          "adapt": false
+        }
+      },
+      {
         "name": "novelty_guided_es",
         "behavior_traj_length": 50,
-        "behavior_sampling_rate": 20,
+        "behavior_sampling_rate": 40,
         "behavior_variable": [true],
-        "behavior_dim": 2,
+        "behavior_dim": 4,
         "adaptive": [
           {
             "initial_rl_weight": 1.0,
@@ -32,8 +45,8 @@
         "novelty_detector": [
           {
             "name": "seq_ae",
-            "n_hidden": ["100"],
-            "n_layers": [1, 2],
+            "n_hidden": [100],
+            "n_layers": [1,2],
             "lr": 1e-3,
             "batch_size": 100,
             "sparsity_level": [
