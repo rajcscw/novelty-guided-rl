@@ -17,7 +17,7 @@
       "name": "novelty_guided_es",
       "behavior_traj_length": 50,
       "behavior_sampling_rate": 10,
-      "behavior_variable": [true],
+      "behavior_variable": [false, true],
       "behavior_dim": 6,
       "adaptive": [
         {
@@ -35,7 +35,7 @@
         {
           "name": "seq_ae",
           "n_hidden": [50],
-          "n_layers": [2],
+          "n_layers": [1, 2],
           "lr": 1e-3,
           "batch_size": 100,
           "sparsity_level": [
