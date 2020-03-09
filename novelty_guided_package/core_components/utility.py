@@ -65,6 +65,10 @@ def get_fixed_length_sequences(seq, to_len):
     return sampled
 
 def get_variable_length_sequences(seq, sample_every):
-    sampled_indices = np.arange(0, seq.shape[0], sample_every)
+    seq_len = seq.shape[0]
+    if seq_len <= sample_every:
+        return seq
+
+    sampled_indices = np.arange(0, seq.shape[0]+1, sample_every)
     sampled_sequence = seq[sampled_indices]
     return sampled_sequence
