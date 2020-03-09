@@ -15,8 +15,9 @@
     "method": [
       {
         "name": "novelty_guided_es",
-        "behavior_traj_length": 50,
-        "behavior_sampling_rate": [5],
+        "behavior_min_seq_length": 1000,
+        "behavior_min_seq_length_sampled": 10,
+        "behavior_sample_ratio": 100,
         "behavior_variable": [true],
         "behavior_dim": 4,
         "adaptive": [

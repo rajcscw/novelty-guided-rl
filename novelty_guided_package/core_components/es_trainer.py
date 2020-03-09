@@ -48,7 +48,9 @@ class ESTrainer:
             if self.novelty_detector_config is not None else None
         self.behavior_variable = self.config["method"].get("behavior_variable", False)
         self.behavior_traj_length = self.config["method"].get("behavior_traj_length", None)
-        self.behavior_sampling_rate = self.config["method"].get("behavior_sampling_rate", None)
+        self.behavior_min_seq_length = self.config["method"].get("behavior_min_seq_length", None)
+        self.behavior_min_seq_length_sampled = self.config["method"].get("behavior_min_seq_length_sampled", None)
+        self.behavior_sample_ratio =  self.config["method"].get("behavior_sample_ratio", None)
         self.behavior_dim = self.config["method"].get("behavior_dim", None)
 
         # policy network
@@ -103,7 +105,9 @@ class ESTrainer:
                                          max_episode_steps=self.max_episode_steps,
                                          behavior_variable=self.behavior_variable,
                                          behavior_traj_length=self.behavior_traj_length,
-                                         behavior_sampling_rate=self.behavior_sampling_rate,
+                                         behavior_min_seq_length=self.behavior_min_seq_length,
+                                         behavior_min_seq_length_sampled=self.behavior_min_seq_length_sampled,
+                                         behavior_sample_ratio=self.behavior_sample_ratio,
                                          stochastic=self.stochastic,
                                          early_stop_reward=self.early_stop_reward)
 

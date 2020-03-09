@@ -8,13 +8,25 @@ from novelty_guided_package.core_components.utility import to_device, get_fixed_
 
 
 class EpisodicReturnPolicy:
-    def __init__(self, model, task_name, max_episode_steps, behavior_variable, behavior_traj_length, behavior_sampling_rate, stochastic, early_stop_reward=None):
+    def __init__(self, 
+                 model, 
+                 task_name, 
+                 max_episode_steps, 
+                 behavior_variable, 
+                 behavior_traj_length, 
+                 behavior_min_seq_length,
+                 behavior_min_seq_length_sampled,
+                 behavior_sample_ratio, 
+                 stochastic, 
+                 early_stop_reward=None):
         self.model = model
         self.task_name = task_name
         self.max_episode_steps = max_episode_steps
         self.behavior_variable = behavior_variable
         self.behavior_traj_length = behavior_traj_length
-        self.behavior_sampling_rate = behavior_sampling_rate
+        self.behavior_min_seq_length = behavior_min_seq_length
+        self.behavior_min_seq_length_sampled = behavior_min_seq_length_sampled
+        self.behavior_sample_ratio = behavior_sample_ratio
         self.stochastic = stochastic
         self.early_stop_reward = early_stop_reward
 
@@ -124,9 +136,12 @@ class EpisodicReturnPolicy:
         if not self.behavior_variable and self.behavior_traj_length is not None:
             behavior = np.array(trajectory)
             behavior = get_fixed_length_sequences(behavior, self.behavior_traj_length)
-        elif self.behavior_variable and self.behavior_sampling_rate is not None:
+        elif self.behavior_variable and self.behavior_sample_ratio is not None:
             behavior = np.array(trajectory)
-            behavior = get_variable_length_sequences(behavior, self.behavior_sampling_rate)
+            behavior = get_variable_length_sequences(behavior,
+                                                     self.behavior_min_seq_length,
+                                                     self.behavior_min_seq_length_sampled,
+                                                     self.behavior_sample_ratio)
         return episodic_return, behavior, stats
 
     def _early_stop(self, reward):
