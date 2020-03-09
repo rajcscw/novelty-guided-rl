@@ -32,7 +32,7 @@
       "novelty_detector": [
         {
           "name": "seq_ae",
-          "n_hidden": [50],
+          "n_hidden": [100],
           "n_layers": [1, 2],
           "lr": 1e-3,
           "batch_size": 100,
