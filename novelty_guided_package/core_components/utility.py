@@ -66,10 +66,15 @@ def get_fixed_length_sequences(seq, to_len):
 
 def get_variable_length_sequences(seq, min_seq_length, min_seq_length_sampled, sampling_ratio):
     seq_len = seq.shape[0]
-    if seq_len < min_seq_length:
-        seq_length_to_be = min_seq_length_sampled
-    else:
-        seq_length_to_be = int(seq_len/sampling_ratio)
+    dim = seq.shape[1]
+
+    # here, we use the sampling ratio
+    seq_length_to_be = int(seq_len/sampling_ratio)
     
-    seq = get_fixed_length_sequences(seq, seq_length_to_be)
+    if seq_length_to_be <= 1:
+        # pick only the last behavior
+        seq = seq[seq_len-1].reshape(1,dim)
+    else:
+        seq = get_fixed_length_sequences(seq, seq_length_to_be)
+    
     return seq
