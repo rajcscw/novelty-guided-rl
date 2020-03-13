@@ -13,9 +13,7 @@ class EpisodicReturnPolicy:
                  task_name, 
                  max_episode_steps, 
                  behavior_variable, 
-                 behavior_traj_length, 
-                 behavior_min_seq_length,
-                 behavior_min_seq_length_sampled,
+                 behavior_traj_length,
                  behavior_sample_ratio, 
                  stochastic, 
                  early_stop_reward=None):
@@ -24,8 +22,6 @@ class EpisodicReturnPolicy:
         self.max_episode_steps = max_episode_steps
         self.behavior_variable = behavior_variable
         self.behavior_traj_length = behavior_traj_length
-        self.behavior_min_seq_length = behavior_min_seq_length
-        self.behavior_min_seq_length_sampled = behavior_min_seq_length_sampled
         self.behavior_sample_ratio = behavior_sample_ratio
         self.stochastic = stochastic
         self.early_stop_reward = early_stop_reward
@@ -139,8 +135,6 @@ class EpisodicReturnPolicy:
         elif self.behavior_variable and self.behavior_sample_ratio is not None:
             behavior = np.array(trajectory)
             behavior = get_variable_length_sequences(behavior,
-                                                     self.behavior_min_seq_length,
-                                                     self.behavior_min_seq_length_sampled,
                                                      self.behavior_sample_ratio)
         return episodic_return, behavior, stats
 

@@ -64,7 +64,7 @@ def get_fixed_length_sequences(seq, to_len):
     sampled = seq[spaced_indices]
     return sampled
 
-def get_variable_length_sequences(seq, min_seq_length, min_seq_length_sampled, sampling_ratio):
+def get_variable_length_sequences(seq, sampling_ratio):
     seq_len = seq.shape[0]
     dim = seq.shape[1]
     sampling_rate = sampling_ratio

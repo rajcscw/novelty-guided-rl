@@ -14,16 +14,10 @@
     {
       "name": "novelty_guided_es",
       "behavior_traj_length": 50,
-      "behavior_sampling_rate": 20,
+      "behavior_sample_ratio": [20],
       "behavior_variable": [true],
       "behavior_dim": 2,
       "adaptive": [
-        {
-          "initial_rl_weight": 1.0,
-          "adapt": true,
-          "rl_weight_delta": [0.05],
-          "t_max": [50]
-        },
         {
           "initial_rl_weight": 0.0,
           "adapt": false
