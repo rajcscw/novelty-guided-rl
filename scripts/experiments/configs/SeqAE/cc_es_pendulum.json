@@ -17,7 +17,8 @@
         "name": "novelty_guided_es",
         "behavior_min_seq_length": 1000,
         "behavior_min_seq_length_sampled": 10,
-        "behavior_sample_ratio": 200,
+        "behavior_sample_ratio": [200],
+        "behavior_traj_length": 50,
         "behavior_variable": [true],
         "behavior_dim": 4,
         "adaptive": [
@@ -34,7 +35,7 @@
             "lr": 1e-3,
             "batch_size": 100,
             "sparsity_level": [
-              0.25, 0.5, 1.0
+              1.0
             ],
             "archive_size": 1000,
             "n_epochs": [1]

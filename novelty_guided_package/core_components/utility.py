@@ -67,14 +67,26 @@ def get_fixed_length_sequences(seq, to_len):
 def get_variable_length_sequences(seq, min_seq_length, min_seq_length_sampled, sampling_ratio):
     seq_len = seq.shape[0]
     dim = seq.shape[1]
-
-    # here, we use the sampling ratio
-    seq_length_to_be = int(seq_len/sampling_ratio)
+    sampling_rate = sampling_ratio
     
-    if seq_length_to_be <= 1:
-        # pick only the last behavior
-        seq = seq[seq_len-1].reshape(1,dim)
+    if seq_len < sampling_rate:
+        # let's consider sampling ratio as the sampling rate
+        sampling_rate = int(sampling_rate / 10)
+        spaced_indices = np.arange(sampling_rate, seq_len+1, sampling_rate)
+        spaced_indices = spaced_indices - 1
+        spaced_indices_ = [0]
+        spaced_indices_.extend(spaced_indices.tolist())
     else:
-        seq = get_fixed_length_sequences(seq, seq_length_to_be)
-    
+        # let's consider sampling ratio as the sampling rate
+        spaced_indices = np.arange(sampling_rate, seq_len+1, sampling_rate)
+        spaced_indices = spaced_indices - 1
+        spaced_indices_ = [0]
+        spaced_indices_.extend(spaced_indices.tolist())
+    seq = seq[spaced_indices_]
     return seq
+
+if __name__ == "__main__":
+    sampling_rate = 100
+    seq_length = 20
+    seq = np.random.rand(seq_length, 1)
+    print(get_variable_length_sequences(seq, None, None, sampling_rate).shape)

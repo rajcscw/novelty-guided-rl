@@ -180,7 +180,7 @@ class SeqAE(nn.Module):
             # reconstructed must consider only the first seq length elements
             reconstructed = reconstructed_sequences[i, :, :][:seq_length]
             reconstructed_sequences_as_list.append(reconstructed.detach().numpy().reshape((-1, self.n_input))) 
-            loss = self.loss_fn(reconstructed, original) / seq_length # divide by seq length
+            loss = self.loss_fn(reconstructed, original) # divide by seq length
             loss_per_sequences.append(loss.detach().numpy())
             loss_batch += loss
         loss_batch = loss_batch / current_batch_size # divide by batch size
@@ -200,7 +200,6 @@ class SeqAE(nn.Module):
             sequences = inputs[current_batch_idx:current_batch_idx+self.batch_size]
             reconstructed, loss, _ = self.forward(sequences)
         
-
             # back prop
             loss.backward()
             self.encoder_optimizer.step()
