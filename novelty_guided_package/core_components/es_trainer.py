@@ -141,7 +141,7 @@ class ESTrainer:
         reward_pressure = []
         running_total_reward = 0
         running_reward_pressure = 0.0
-        for i in tqdm(range(self.max_iter)):
+        for i in range(self.max_iter):
             total_reward = self.run_epoch(model, estimator, objective, novelty_detector, nov_adaptor)
             running_total_reward += total_reward
             running_reward_pressure += estimator.rl_weight
