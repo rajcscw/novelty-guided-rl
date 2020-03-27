@@ -1,6 +1,6 @@
 {
     "environment": {
-      "name": "HalfCheetah-v2",
+      "name": "Hopper-v2",
       "max_episode_steps": null
     },
     "model": {
@@ -14,33 +14,29 @@
       {
         "name": "novelty_guided_es",
         "behavior_traj_length": 50,
-        "behavior_sample_ratio": [20],
+        "behavior_sample_ratio": [10],
         "behavior_variable": [true],
         "behavior_dim": 2,
         "adaptive": [
-          {
-            "initial_rl_weight": 1.0,
-            "adapt": true,
-            "rl_weight_delta": [0.05],
-            "t_max": [50]
-          },
-          {
-            "initial_rl_weight": 0.0,
-            "adapt": false
-          }
+            {
+                "initial_rl_weight": 1.0,
+                "adapt": true,
+                "rl_weight_delta": [0.05],
+                "t_max": [50]
+              }
         ],
         "novelty_detector": [
           {
             "name": "seq_ae",
-            "n_hidden": [50],
-            "n_layers": [1, 2],
-            "lr": 1e-3,
+            "n_hidden": [100],
+            "n_layers": [1],
+            "lr": [1e-2],
             "batch_size": 100,
             "sparsity_level": [
               0.25, 0.5, 1.0
             ],
             "archive_size": 1000,
-            "n_epochs": [1]
+            "n_epochs": [5]
           }
         ]
       }
