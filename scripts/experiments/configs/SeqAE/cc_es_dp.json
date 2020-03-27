@@ -15,8 +15,8 @@
   "method": [
     {
       "name": "novelty_guided_es",
-      "behavior_traj_length": 50,
-      "behavior_sampling_rate": 10,
+      "behavior_sample_ratio": [100],
+      "behavior_traj_length": [100],
       "behavior_variable": [false, true],
       "behavior_dim": 6,
       "adaptive": [
@@ -25,17 +25,13 @@
           "adapt": true,
           "rl_weight_delta": [0.05],
           "t_max": [50]
-        },
-        {
-          "initial_rl_weight": 0.0,
-          "adapt": false
         }
       ],
       "novelty_detector": [
         {
           "name": "seq_ae",
           "n_hidden": [50],
-          "n_layers": [2],
+          "n_layers": [1, 2],
           "lr": 1e-3,
           "batch_size": 100,
           "sparsity_level": [
