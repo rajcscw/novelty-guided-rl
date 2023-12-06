@@ -1,9 +1,6 @@
 # Novelty-guided-via-behaviors
 
-Must be updated...
+Code for papers:
 
-
-Dependencies:
-
-# For installing Mujoco
-sudo apt-get install libosmesa6-dev
+https://ieeexplore.ieee.org/abstract/document/9206982
+https://link.springer.com/chapter/10.1007/978-3-030-61616-8_27
